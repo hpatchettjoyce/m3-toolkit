@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
-clean** on the data as of the 2026-09-14 evening re-export (D8).
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator reports one
+open data question, `Lark`'s effect type (§6 item 1b); everything else is clean.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -37,6 +37,7 @@ them in a later session.
 | D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
+| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]` — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
 | D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 3 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
 
@@ -259,12 +260,21 @@ Details that matter:
 
 - **The renderer supplies the `|` separator.** It used to live inside the data; it doesn't any more.
 - Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
-- **`Effect Type` is a closed 10-value vocabulary**, all caps, verified across all 200 rows
-  (counts as of the D8 re-export):
-  `ABILITY` (54), `ACTION` (15), `FREE ACTION` (8), `ATTACK` (4), `FREE ATTACK REACTION` (4),
-  `MANOEUVRE` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE` (1), `FREE ATTACK` (1),
-  `SPECIAL ACTION` (1). `validate_cast.py` enforces this list — an unexpected value means a
-  data-entry slip, not a new category.
+- **`Effect Type` follows a grammar** (D9), all caps:
+
+  ```
+  ABILITY
+  [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
+  ```
+
+  Brackets mark optional parts, slashes either/or, exactly one space between parts.
+  `validate_cast.py` enforces this shape rather than a fixed list, so a legal combination that
+  hasn't been used yet — `FREE MANOEUVRE`, say — passes without a code change. Observed values as
+  of the D8 re-export: `ABILITY` (54), `ACTION` (15), `FREE ACTION` (8), `ATTACK` (4),
+  `FREE ATTACK REACTION` (4), `MANOEUVRE` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE` (1),
+  `FREE ATTACK` (1), plus one `SPECIAL ACTION` the grammar rejects — see §6 item 1b.
+- The validator names *which part* is wrong — an unknown core, a prefix with no core, irregular
+  whitespace, lower case, or one of the four pre-D8 spellings — rather than just rejecting the cell.
 - **D8 dropped the redundant trailing `ACTION`.** An attack is an action unless it is a reaction, so
   `ATTACK ACTION` is simply `ATTACK`; likewise `MANOEUVRE`, `ATTACK MANOEUVRE` and `FREE ATTACK`.
   The word is kept where it carries meaning — `ACTION`, `FREE ACTION`, `SPECIAL ACTION` — and
@@ -357,7 +367,7 @@ independent — run it any time, including first if you'd rather see progress on
   `{COMPANION, SIGNATURE, ""}`; every `COMPANION`/`SIGNATURE` row has `Role Details`; **every
   `Role Details` resolves to a champion in the same dominion under the §3.1 normalised
   comparison**; every non-companion/signature row has empty `Role Details`; `Effect Type N` is in
-  the closed 10-value vocabulary from §3.4; `Effect Name N` and `Effect Type N` are populated
+  the §3.4 effect-type grammar (D9); `Effect Name N` and `Effect Type N` are populated
   together (neither alone); **no effect name/type cell contains `{` or `*`** — that would mean a
   stale export with the old Dextrous markup; deck JSON `ContainedObjects` count == CSV row count;
   `DeckIDs` length matches; every `CustomDeck` sheet referenced exists.
@@ -383,8 +393,10 @@ into `main.gs`. Teeth verified by corrupting a copy of the CSV: a broken `Role D
 are each reported, and every corruption exits 1. A naive exact match fails exactly the 5 rows in
 §3.1; under normalisation all 24 links resolve.
 
-**Passes clean as of the D8 re-export (2026-09-14 evening).** The 4 pairing failures it originally
-found are fixed — see §6 item 1a — and the effect-type vocabulary now matches D8.
+**Effect types are checked against the D9 grammar, not a closed list**, so vocabulary tweaks no
+longer require a validator change. The 4 pairing failures it originally found are fixed (§6 item
+1a). One outstanding failure: `Lark`'s `SPECIAL ACTION`, which the grammar rejects — §6 item 1b.
+Everything else passes.
 
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
@@ -708,6 +720,14 @@ unaffected.
    `Effect Type N` are now paired on all 200 rows (84 in slot 1, 7 in slot 2) and the validator
    passes clean. The roster itself is unchanged — same 200 IDs and names, verified against the
    previously committed CSV.
+
+1b. **Decide what `Lark`'s effect type should be.** `03VOI-01CHP-0068` (sheet row 69), effect
+   `TRICK SHOT`, is typed `SPECIAL ACTION` — the only value in the sheet that the D9 grammar
+   rejects. `SPECIAL` is not a prefix in the grammar, and `SPECIAL ACTION` is also the name of a
+   *class*, so this may be a column mix-up rather than a deliberate type. If it should be `ACTION`
+   or `FREE ACTION`, fix it in the sheet and re-export. If `SPECIAL` is a real prefix, say so and
+   it goes into `EFFECT_PREFIXES` in `validate_cast.py` — a one-line change. **Until then
+   `validate_cast.py` exits 1 with exactly this one failure**, which does not block Chunk 1.
 
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding

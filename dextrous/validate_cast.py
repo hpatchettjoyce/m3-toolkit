@@ -71,28 +71,101 @@ SEGMENT_BY_CLASS = {
     "SPECIAL ACTION": "07SPA",
 }
 
-# §3.4. Closed vocabulary, verified across all 200 rows. An unexpected value means a
-# data-entry slip, not a new category.
+# §3.4. Effect types follow a *grammar*, not a fixed list (D9). Spelling them out as a
+# closed set meant every vocabulary tweak broke the validator; the shape below is what
+# the game actually allows, so new combinations pass without a code change:
 #
-# Revised 2026-09-14 (D8): the redundant trailing "ACTION" was dropped wherever the
-# type already implies one -- an ATTACK is an action unless it is a REACTION, so
-# "ATTACK ACTION" is just "ATTACK". The word is kept where it carries meaning:
-# "ACTION", "FREE ACTION" and "SPECIAL ACTION" stay, and "REACTION" is untouched.
-# If you meet "ATTACK ACTION" or "MANOEUVRE ACTION", that is a pre-D8 export.
-EFFECT_TYPES = {
-    "ABILITY", "ACTION", "ATTACK", "FREE ACTION", "FREE ATTACK REACTION",
-    "MANOEUVRE", "ATTACK EXERTION", "ATTACK MANOEUVRE",
-    "FREE ATTACK", "SPECIAL ACTION",
-}
+#     ABILITY
+#     [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
+#
+# Square brackets are optional, slashes are either/or. Everything is uppercase.
+EFFECT_STANDALONE = ("ABILITY",)
+EFFECT_PREFIXES = ("FREE",)
+EFFECT_CORES = ("ACTION", "ATTACK", "MANOEUVRE", "ATTACK MANOEUVRE")
+EFFECT_SUFFIXES = ("REACTION", "EXERTION")
 
-# Pre-D8 spellings, kept only so the validator can say *why* a value is wrong rather
-# than just that it is. Not valid input.
+
+def _alternation(options: tuple[str, ...]) -> str:
+    """Longest-first alternation, so `ATTACK MANOEUVRE` wins over `ATTACK`.
+
+    Sorting here rather than relying on the tuple order means a core added later can't
+    silently shadow one already present.
+    """
+    return "|".join(re.escape(o) for o in sorted(options, key=len, reverse=True))
+
+
+# Exactly one space between parts. `\s*` here would quietly accept `FREEACTION` and
+# `FREE  ACTION`, both of which reach the card face verbatim.
+EFFECT_TYPE_PATTERN = re.compile(
+    "^(?:"
+    + _alternation(EFFECT_STANDALONE)
+    + "|(?:(?:" + _alternation(EFFECT_PREFIXES) + ") )?"
+    + "(?:" + _alternation(EFFECT_CORES) + ")"
+    + "(?: (?:" + _alternation(EFFECT_SUFFIXES) + "))?"
+    + ")$"
+)
+
+# Pre-D8 spellings. The grammar already rejects these -- `ATTACK ACTION` is a core
+# followed by another core -- but naming them turns "unknown value" into "stale
+# export", which is the actual diagnosis. Not valid input.
 SUPERSEDED_EFFECT_TYPES = {
     "ATTACK ACTION": "ATTACK",
     "MANOEUVRE ACTION": "MANOEUVRE",
     "ATTACK MANOEUVRE ACTION": "ATTACK MANOEUVRE",
     "FREE ATTACK ACTION": "FREE ATTACK",
 }
+
+EFFECT_GRAMMAR_SUMMARY = (
+    "ABILITY, or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]"
+)
+
+
+def effect_type_error(value: str) -> str | None:
+    """Return a readable reason `value` is not a valid effect type, or None if it is.
+
+    Diagnoses by peeling the optional prefix and suffix off and naming whatever is
+    left over, so the report says which *part* is wrong rather than just rejecting
+    the whole cell.
+    """
+    if EFFECT_TYPE_PATTERN.match(value):
+        return None
+
+    superseded = SUPERSEDED_EFFECT_TYPES.get(value)
+    if superseded:
+        return (
+            f"{value!r} is the pre-D8 spelling — should be {superseded!r}. "
+            "This is a stale export; re-export the sheet."
+        )
+
+    if value != value.upper():
+        return f"{value!r} is not uppercase (expected {value.upper()!r})"
+
+    tidied = " ".join(value.split())
+    if tidied != value and EFFECT_TYPE_PATTERN.match(tidied):
+        return f"{value!r} has irregular whitespace — expected {tidied!r}"
+
+    remainder = value
+    had_prefix = False
+    for prefix in EFFECT_PREFIXES:
+        if remainder == prefix or remainder.startswith(prefix + " "):
+            remainder = remainder[len(prefix):].strip()
+            had_prefix = True
+            break
+    for suffix in EFFECT_SUFFIXES:
+        if remainder == suffix or remainder.endswith(" " + suffix):
+            remainder = remainder[: len(remainder) - len(suffix)].strip()
+            break
+
+    if not remainder:
+        return (
+            f"{value!r} has no core — {'FREE' if had_prefix else 'a prefix or suffix'} "
+            f"must be attached to one of {list(EFFECT_CORES)}"
+        )
+    return (
+        f"{value!r} is not a valid effect type: {remainder!r} is not one of "
+        f"{list(EFFECT_CORES)} (grammar: {EFFECT_GRAMMAR_SUMMARY})"
+    )
+
 
 ID_PATTERN = re.compile(r"^(\d{2}[A-Z]{3})-(\d{2}[A-Z]{3})-(\d{4})$")
 
@@ -312,16 +385,13 @@ def check_rows(rows: list[dict], report: Report) -> None:
                     "effect name/type paired",
                     f"{label}: Effect {populated} {slot} is populated but Effect {empty} {slot} is empty",
                 )
-            if type_ and type_ not in EFFECT_TYPES:
-                superseded = SUPERSEDED_EFFECT_TYPES.get(type_)
-                if superseded:
-                    detail = (
-                        f"{type_!r} is the pre-D8 spelling — should be {superseded!r}. "
-                        "This is a stale export; re-export the sheet."
+            if type_:
+                problem = effect_type_error(type_)
+                if problem:
+                    report.fail(
+                        "effect type grammar",
+                        f"{label}: Effect Type {slot} {problem}",
                     )
-                else:
-                    detail = f"{type_!r} is not one of the 10 known types (§3.4)"
-                report.fail("effect type vocabulary", f"{label}: Effect Type {slot} {detail}")
             for column, value in ((f"Effect Name {slot}", name), (f"Effect Type {slot}", type_)):
                 if "{" in value or "*" in value:
                     report.fail(
