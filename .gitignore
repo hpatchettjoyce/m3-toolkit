@@ -17,11 +17,5 @@ Desktop.ini
 *.log
 *.bak
 
-# Claude Code local state (worktrees, machine-local settings).
-# Note the trailing /* rather than /: git won't descend into a directory ignored
-# by name, so the negation below would never be reached without it.
-.claude/*
-
-# ...but the project's shared skills are versioned, so they travel with the repo
-# and every fresh session picks them up automatically.
-!.claude/skills/
+# Claude Code local state (worktrees, machine-local settings)
+.claude/

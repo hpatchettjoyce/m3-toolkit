@@ -2,7 +2,7 @@
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
 **Status:** not started — Chunk 0 is next
-**Source of truth for agent sessions.** Read this file first in every fresh session, then read the most recent file in `handover/`. Don't publish this as an artifact; it stays a repo file.
+**Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
 
@@ -16,7 +16,7 @@ tool needs brand styling.
 The work is sequenced into **8 chunks**. Each chunk is one session:
 
 ```
-code  ->  summarise change  ->  human manually tests  ->  write handover  ->  clear context  ->  next session
+/pickup  ->  code  ->  summarise  ->  /handover  ->  human manually tests  ->  clear context  ->  /pickup
 ```
 
 Nothing in this repo can be unit-tested locally — Apps Script needs a deploy and TTS needs the
@@ -586,54 +586,64 @@ are still light with coloured borders.
 
 ## 5. Handover protocol
 
-Every chunk session ends by writing `handover/CHUNK_<n>_HANDOVER.md`. The next session reads
-`UPGRADE_PLAN.md` (this file) plus the latest handover, and nothing else, before starting.
+### 5.1 The point of the handover
 
-**Two skills automate this** (project-scoped, in `.claude/skills/`, versioned with the repo so every
-fresh session picks them up):
+Each chunk is one session, and the session gets **cleared** between chunks. The handover note is
+what makes that safe: it **compresses a spent context window** into something a fresh session can
+read in a few seconds and then start working, without re-exploring the codebase or re-deriving what
+the last session worked out.
+
+So the note is a compression job, not a record-keeping one. The test for every line is *would the
+next session have to redo work without this?* Roughly 60–150 lines. Cite `file.ext:120` rather than
+pasting code; cite a section of this plan rather than restating it. Spend the length on **gotchas** —
+they're the part that can't be re-derived cheaply.
+
+### 5.2 Where notes live
+
+**Central store, outside this repo:**
+
+```
+~/.claude/handovers/m3-toolkit/<YYYY-MM-DD>_<HHMM>__<nn>-<slug>.md
+```
+
+The date prefix sorts chronologically, so "most recent" is a plain sort. Each note carries
+frontmatter (`project`, `date`, `unit`, `status`, `branch`, `commit`, `next`, `tags`) so a note can
+be found by chunk number, date or keyword.
+
+They're deliberately **not** in the repo: a handover is about the *session*, not the codebase, and it
+should survive branches and worktrees being deleted. The consequence is that notes aren't versioned
+or shared — which is why **this section, in the repo, is the specification**. The skills automate it;
+they don't define it. If they're unavailable, follow §5.1–§5.4 by hand and nothing is lost.
+
+### 5.3 The two commands
 
 | Command | What it does |
 |---|---|
-| `/resume` | Reads this plan and the latest handover, **verifies the repo actually matches what they claim**, checks whether your §6 prerequisites are met, orients you, then starts the next chunk. Takes an optional chunk number: `/resume 3`. |
-| `/handover` | Gathers the git facts rather than recalling them, writes `handover/CHUNK_<n>_HANDOVER.md` to the template, commits it, then gives you the manual test steps. Amends the note with the result once you report back. |
+| `/pickup` | Reads the most recent note for this project, then reads **only** what the note points to, verifies the repo state cheaply, checks your §6 prerequisites, orients you, and starts the chunk. An argument selects a different note: `/pickup 3`, `/pickup branding`, `/pickup list`. |
+| `/handover` | Gathers the git facts by running commands rather than recalling them, writes the note to the central store, commits the code, then gives you the manual test steps. Amends the note with the result once you report back. |
 
-A session should therefore start with `/resume` and end with `/handover`. Template:
+**Start each session with `/pickup`, end it with `/handover`.** Both are user-level skills
+(`~/.claude/skills/`) and work in any project.
 
-```markdown
-# Chunk <n> handover — <title>
+### 5.4 What goes in a note
 
-**Session date:**
-**Commit:** <sha>  **Branch:** <branch>
-**Chunk status:** complete | partial | blocked
+Frontmatter, then: **What changed** (per file, one line each) · **Decisions** (with reasons and what
+they rule out) · **Verified** (what you ran and its result, kept separate from what you only expect)
+· **Not done** (and where the seam is, if partial) · **Gotchas** · **Next session starts here** (a
+concrete first action, plus which sections or line ranges to read).
 
-## What changed
-- <file>: <what and why>
-
-## Decisions made
-- <decision> — <why, and what it rules out>
-
-## Tested
-- <what was manually tested> -> <result>
-
-## NOT done / deliberately deferred
-- <thing> — <why, and which chunk it belongs to>
-
-## Gotchas found
-- <anything the next session would otherwise rediscover the hard way>
-
-## Next session starts here
-- Read: UPGRADE_PLAN.md §<chunk>, this file
-- First action: <concrete first step>
-```
+Write "None" rather than dropping a heading, so "nothing to report" is distinguishable from "not
+considered".
 
 Rules that keep this working:
 
-- **Write the handover before the manual test, then amend it after.** If the test fails, the failure
+- **Write the note before the manual test, then amend it after.** If the test fails, that failure
   detail is the most valuable thing in the file.
-- Record decisions and their *reasons*, not just diffs — git already has the diffs.
-- If a chunk ends partial, say exactly where the seam is. A half-finished parser with no note is worse
-  than no work at all.
-- Update this plan's §3 if a survey finding turns out to be wrong. Later sessions trust it.
+- **Separate verified from assumed.** A confident-sounding unverified claim is the most expensive
+  thing you can leave behind.
+- Record decisions and their *reasons*. Git already has the diffs.
+- If a chunk ends partial, say exactly where the seam is.
+- **Update this plan's §1–§3 if a finding turns out to be wrong.** Later sessions trust it.
 
 ---
 
