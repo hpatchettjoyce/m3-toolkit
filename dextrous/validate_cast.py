@@ -73,10 +73,25 @@ SEGMENT_BY_CLASS = {
 
 # §3.4. Closed vocabulary, verified across all 200 rows. An unexpected value means a
 # data-entry slip, not a new category.
+#
+# Revised 2026-09-14 (D8): the redundant trailing "ACTION" was dropped wherever the
+# type already implies one -- an ATTACK is an action unless it is a REACTION, so
+# "ATTACK ACTION" is just "ATTACK". The word is kept where it carries meaning:
+# "ACTION", "FREE ACTION" and "SPECIAL ACTION" stay, and "REACTION" is untouched.
+# If you meet "ATTACK ACTION" or "MANOEUVRE ACTION", that is a pre-D8 export.
 EFFECT_TYPES = {
-    "ABILITY", "ACTION", "ATTACK ACTION", "FREE ACTION", "FREE ATTACK REACTION",
-    "MANOEUVRE ACTION", "ATTACK EXERTION", "ATTACK MANOEUVRE ACTION",
-    "FREE ATTACK ACTION", "SPECIAL ACTION",
+    "ABILITY", "ACTION", "ATTACK", "FREE ACTION", "FREE ATTACK REACTION",
+    "MANOEUVRE", "ATTACK EXERTION", "ATTACK MANOEUVRE",
+    "FREE ATTACK", "SPECIAL ACTION",
+}
+
+# Pre-D8 spellings, kept only so the validator can say *why* a value is wrong rather
+# than just that it is. Not valid input.
+SUPERSEDED_EFFECT_TYPES = {
+    "ATTACK ACTION": "ATTACK",
+    "MANOEUVRE ACTION": "MANOEUVRE",
+    "ATTACK MANOEUVRE ACTION": "ATTACK MANOEUVRE",
+    "FREE ATTACK ACTION": "FREE ATTACK",
 }
 
 ID_PATTERN = re.compile(r"^(\d{2}[A-Z]{3})-(\d{2}[A-Z]{3})-(\d{4})$")
@@ -298,10 +313,15 @@ def check_rows(rows: list[dict], report: Report) -> None:
                     f"{label}: Effect {populated} {slot} is populated but Effect {empty} {slot} is empty",
                 )
             if type_ and type_ not in EFFECT_TYPES:
-                report.fail(
-                    "effect type vocabulary",
-                    f"{label}: Effect Type {slot} {type_!r} is not one of the 10 known types (§3.4)",
-                )
+                superseded = SUPERSEDED_EFFECT_TYPES.get(type_)
+                if superseded:
+                    detail = (
+                        f"{type_!r} is the pre-D8 spelling — should be {superseded!r}. "
+                        "This is a stale export; re-export the sheet."
+                    )
+                else:
+                    detail = f"{type_!r} is not one of the 10 known types (§3.4)"
+                report.fail("effect type vocabulary", f"{label}: Effect Type {slot} {detail}")
             for column, value in ((f"Effect Name {slot}", name), (f"Effect Type {slot}", type_)):
                 if "{" in value or "*" in value:
                     report.fail(

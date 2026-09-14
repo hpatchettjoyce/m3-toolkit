@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator currently
-reports 4 real data gaps; see §6 item 1a.
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
+clean** on the data as of the 2026-09-14 evening re-export (D8).
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -37,6 +37,7 @@ them in a later session.
 | D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
+| D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 3 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
 
 ---
@@ -85,8 +86,8 @@ Four changes that break code:
 4. **`Effect` split into six columns** — name, type and details, twice over — replacing the single
    `Effect (str)`. See §3.4; the type is its own clean column, so no markup parsing is needed.
 
-Population counts: `Effect Details 1` 197/200, `Effect Name 1` and `Effect Type 1` 90/200 each,
-`Effect * 2` 7/200 each, `Keywords` 80/200, `Flavour` 60/200, `Artwork` 89/200, `Lore` 1/200.
+Population counts (after the D8 re-export): `Effect Details 1` 197/200, `Effect Name 1` and
+`Effect Type 1` **84/200** each, `Effect * 2` 7/200 each, `Keywords` 80/200, `Flavour` 60/200, `Artwork` 89/200, `Lore` 1/200.
 
 > **Schema revised 2026-09-14 (D7).** An earlier export combined the effect name and type into a
 > single `Effect 1 - Name` cell carrying `{EffectName:X} {EffectType:Y}` Dextrous markup, and called
@@ -258,11 +259,18 @@ Details that matter:
 
 - **The renderer supplies the `|` separator.** It used to live inside the data; it doesn't any more.
 - Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
-- **`Effect Type` is a closed 10-value vocabulary**, all caps, verified across all 200 rows:
-  `ABILITY` (60), `ACTION` (15), `ATTACK ACTION` (4), `FREE ACTION` (8), `FREE ATTACK REACTION` (4),
-  `MANOEUVRE ACTION` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE ACTION` (1),
-  `FREE ATTACK ACTION` (1), `SPECIAL ACTION` (1). Chunk 0 should validate against this list — an
-  unexpected value means a data-entry slip, not a new category.
+- **`Effect Type` is a closed 10-value vocabulary**, all caps, verified across all 200 rows
+  (counts as of the D8 re-export):
+  `ABILITY` (54), `ACTION` (15), `FREE ACTION` (8), `ATTACK` (4), `FREE ATTACK REACTION` (4),
+  `MANOEUVRE` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE` (1), `FREE ATTACK` (1),
+  `SPECIAL ACTION` (1). `validate_cast.py` enforces this list — an unexpected value means a
+  data-entry slip, not a new category.
+- **D8 dropped the redundant trailing `ACTION`.** An attack is an action unless it is a reaction, so
+  `ATTACK ACTION` is simply `ATTACK`; likewise `MANOEUVRE`, `ATTACK MANOEUVRE` and `FREE ATTACK`.
+  The word is kept where it carries meaning — `ACTION`, `FREE ACTION`, `SPECIAL ACTION` — and
+  `REACTION` is untouched. The validator recognises the four pre-D8 spellings and names them as a
+  stale export rather than just an unknown value. **Nothing renders the word `ACTION` itself**, so
+  Chunk 3 needs no change here; it prints the cell as given.
 - **`formatRulesText()` still needs its curly-token rules** — but only for `Effect Details` and
   `Keywords`, which carry icon tokens like `{M3/Icons/Dice/SQUARE.png}` (46 cells). The existing
   rules already convert those to `<strong>[SQUARE]</strong>` **before** the catch-all, so this path
@@ -273,7 +281,7 @@ Details that matter:
   weights in Chunk 3 and let Chunk 7 extend the stack rather than redo it. Declare a real fallback.
 
 Two things this revision also cleared, recorded so nobody hunts for them: the `Cinderhulk` lowercase
-casing artifact is **fixed** (`ATTACK MANOEUVRE ACTION`), and the trailing per-effect cost that used
+casing artifact is **fixed** (now `ATTACK MANOEUVRE` under D8), and the trailing per-effect cost that used
 to ride inside two type payloads (`| 4` on `Lark` and `Pashan`) is **gone** — both cards' effects
 were rewritten.
 
@@ -375,8 +383,8 @@ into `main.gs`. Teeth verified by corrupting a copy of the CSV: a broken `Role D
 are each reported, and every corruption exits 1. A naive exact match fails exactly the 5 rows in
 §3.1; under normalisation all 24 links resolve.
 
-**Outstanding:** the validator exits 1 on the current data because of 4 genuine missing effect
-name/type cells — §6 item 1a. Everything else is clean.
+**Passes clean as of the D8 re-export (2026-09-14 evening).** The 4 pairing failures it originally
+found are fixed — see §6 item 1a — and the effect-type vocabulary now matches D8.
 
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
@@ -691,22 +699,15 @@ unaffected.
    the `MANOEUVER` -> `MANOEUVRE` spelling correction, and the D7 effect-column re-split are all in.
    The copy committed on `main` matches your working copy. The 5 `Role Details` name variants
    are intentional and need no change.
-2. ~~**Fix the `Cinderhulk` effect-type casing**~~ — **done**, arrived with the D7 re-export as
-   `ATTACK MANOEUVRE ACTION`.
-1a. **Fill in 4 missing effect name/type cells** — found by the Chunk 0 validator, all in the
-   Veritian block. `Effect Name N` and `Effect Type N` must be populated together (§3.4); these four
-   rows have one without the other:
-
-   | Sheet row | ID | Card | Missing |
-   |---|---|---|---|
-   | 170 | `06VER-01CHP-0169` | Clement Tacitus | `Effect Name 1` (type is `FREE ACTION`) |
-   | 176 | `06VER-03FAM-0175` | Occulacer | `Effect Type 1` (name is `STINGING TENTACLES`) |
-   | 177 | `06VER-03FAM-0176` | Hastaca | `Effect Name 1` (type is `ABILITY`) |
-   | 185 | `06VER-06SIG-0184` | Apertures of Mirimara | `Effect Type 1` (name is `JUMP START`) |
-
-   Fill them in the sheet and re-export the CSV. **This does not block Chunk 1** — it affects the
-   rendered header on 4 cards only. Until it is fixed `validate_cast.py` exits 1, so later chunks
-   should read the report rather than just the exit code.
+2. ~~**Fix the `Cinderhulk` effect-type casing**~~ — **done**, arrived with the D7 re-export; now
+   `ATTACK MANOEUVRE` under D8.
+1a. ~~**Fill in 4 missing effect name/type cells**~~ — **done 2026-09-14**. The Chunk 0 validator
+   flagged 4 rows in the Veritian block with a name but no type, or the reverse; the cause was
+   **misaligned effect rows**, not 4 isolated typos, so the fix moved cells across the whole effect
+   block. Re-exported the same evening together with the D8 vocabulary change. `Effect Name N` and
+   `Effect Type N` are now paired on all 200 rows (84 in slot 1, 7 in slot 2) and the validator
+   passes clean. The roster itself is unchanged — same 200 IDs and names, verified against the
+   previously committed CSV.
 
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
