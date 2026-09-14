@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator reports one
-missing ether cost, Lark's `| 4` (§6 item 1b); everything else is clean.
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
+clean** on the current data.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -429,8 +429,8 @@ are each reported, and every corruption exits 1. A naive exact match fails exact
 §3.1; under normalisation all 24 links resolve.
 
 **Effect types are checked against the D9 grammar, not a closed list**, so vocabulary tweaks no
-longer require a validator change. The 4 pairing failures it originally found are fixed (§6 item
-1a). One outstanding failure: Lark's missing `| 4` ether cost (§6 item 1b). Everything else passes.
+longer require a validator change. **Passes clean, exit 0.** Both data problems it found are fixed:
+the 4 misaligned effect pairs (§6 item 1a) and Lark's missing `| 4` ether cost (§6 item 1b).
 
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
@@ -780,11 +780,8 @@ unaffected.
    passes clean. The roster itself is unchanged — same 200 IDs and names, verified against the
    previously committed CSV.
 
-1b. **Restore `Lark`'s ether cost.** `03VOI-01CHP-0068` (sheet row 69), effect `TRICK SHOT`, should
-   read **`SPECIAL ACTION | 4`** — the `| 4` was dropped in the D8 re-export. `SPECIAL ACTION` is a
-   legitimate type, not the column mix-up it first looked like; only the cost is missing. Fix in the
-   sheet and re-export. **Until then `validate_cast.py` exits 1 with exactly this one failure**,
-   which does not block Chunk 1.
+1b. ~~**Restore `Lark`'s ether cost**~~ — **done 2026-09-14**. `03VOI-01CHP-0068` (sheet row 69),
+   `TRICK SHOT`, now reads `SPECIAL ACTION | 4`. One cell changed; the validator passes clean.
 
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
