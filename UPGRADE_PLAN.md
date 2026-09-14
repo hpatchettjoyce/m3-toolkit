@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
-**Created:** 2026-09-14
-**Status:** not started
-**Source of truth for agent sessions.** Read this file first in every fresh session, then read the most recent file in `handover/`.
+**Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
+**Status:** not started — Chunk 0 is next
+**Source of truth for agent sessions.** Read this file first in every fresh session, then read the most recent file in `handover/`. Don't publish this as an artifact; it stays a repo file.
 
 ---
 
@@ -22,6 +22,20 @@ code  ->  summarise change  ->  human manually tests  ->  write handover  ->  cl
 Nothing in this repo can be unit-tested locally — Apps Script needs a deploy and TTS needs the
 game running — so Chunk 0 builds the one thing that *can* run offline (a CSV/deck validator), and
 every later chunk leans on it before asking for a manual test.
+
+### 1.1 Decisions already taken
+
+Settled by Harvey on 2026-09-14, after the initial survey. **Treat these as closed** — don't re-open
+them in a later session.
+
+| # | Decision | Affects |
+|---|---|---|
+| D1 | The `æ`->`ae` and dropped-comma forms in `Role Details` are **intentional** Dextrous-safe transliterations, not typos. Name matching must normalise; the data is correct as-is. | §3.1, Chunk 0, Chunk 2 |
+| D2 | Model health derives from the **`Class` name**. The ID changed for sorting only and **must never be parsed for meaning**. | §3.2, Chunk 1, Chunk 5 |
+| D3 | `CardImages.gs` becomes an **ID-keyed map**; row-index lookups go away. | §3.3, Chunk 1, Chunk 2 |
+| D4 | Dextrous markup (`{EffectName:…}`, `{EffectType:…}`, asterisks) **must not appear in web output**. It converts to styled Lato text — semi-bold name, light type. | §3.4, Chunk 3 |
+| D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
+| D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
 
 ---
 
@@ -129,50 +143,76 @@ Item 3 of the brief is therefore mostly a consequence of Chunks 2-3, not separat
 
 ---
 
-## 3. Blocking issues found during survey
+## 3. Findings from the survey
 
-### 3.1 Six broken companion/signature links — needs a fix in the spreadsheet
+Seven things that will produce wrong output **silently**, rather than throwing an error. §3.1, §3.2,
+§3.3 and §3.4 now have decisions attached (see §1.1) — the write-ups below record the reasoning and
+the exact spec, so read them before touching the relevant chunk.
 
-`Role Details` holds the champion's name as free text, and 6 of the 24 links don't match any
-champion name exactly. Under a plain name lookup these silently resolve to `null`, which means
-those loyal companions and signature actions **will not appear** for their champion.
+### 3.1 `Role Details` uses Dextrous-safe champion names — matching MUST normalise
 
-| Card | ID | `Role Details` says | Champion is actually |
-|---|---|---|---|
-| Short Fuse | `01RHA-06SIG-0018` | Ignat**ious** Krag | Ignat**ius** Krag |
-| Pelazhiqi | `02IRO-02COM-0037` | Tha**ela**ss Elshara | Th**æ**lass Elshara |
-| Ryuztli | `04XAL-02COM-0103` | Valex the Final Plume | Valex**,** the Final Plume |
-| Kibantli | `04XAL-02COM-0104` | Micteca the Unsetting Sun | Micteca**,** the Unsetting Sun |
-| Opolkan | `05AHE-02COM-0136` | Iroko the Evergreen | Iroko**,** the Evergreen |
-| Egunghi | `05AHE-02COM-0137` | Draen the Ashen Hart | Draen**,** the Ashen Hart |
+`Role Details` holds the champion's name as free text, and 5 of the 24 links don't match the
+champion's `Name` cell character-for-character. **These are deliberate, not typos** — Dextrous can't
+take commas, and the `æ` ligature is avoided as a difficult character, so `Role Details` carries a
+transliterated form of the name. A plain string lookup resolves them to `null`, which means those
+loyal companions and signature actions **will not appear** for their champion.
 
-**Action for you:** fix these 6 cells in the sheet. Only `Ignatious`->`Ignatius` is a true typo; the
-rest are a missing comma and an `æ`/`ae` fold.
+| Card | ID | `Role Details` (Dextrous-safe) | Champion `Name` | Difference |
+|---|---|---|---|---|
+| Pelazhiqi | `02IRO-02COM-0037` | Tha**ela**ss Elshara | Th**æ**lass Elshara | `æ` -> `ae` |
+| Ryuztli | `04XAL-02COM-0103` | Valex the Final Plume | Valex**,** the Final Plume | comma dropped |
+| Kibantli | `04XAL-02COM-0104` | Micteca the Unsetting Sun | Micteca**,** the Unsetting Sun | comma dropped |
+| Opolkan | `05AHE-02COM-0136` | Iroko the Evergreen | Iroko**,** the Evergreen | comma dropped |
+| Egunghi | `05AHE-02COM-0137` | Draen the Ashen Hart | Draen**,** the Ashen Hart | comma dropped |
 
-**Action for the code (Chunk 2):** don't trust the names regardless. Resolve with a normalising
-comparison (Unicode-fold `æ`->`ae`, strip commas/apostrophes/periods, collapse whitespace,
-case-insensitive) and have the validator **fail loudly** on any unresolved link. Long term the
-cleanest fix is to put the champion's *ID* in `Role Details` instead of the name — worth considering
-when you next touch the sheet, but not required by this plan.
+A 6th row, `Short Fuse` (`01RHA-06SIG-0018`), read `Ignatious Krag` against `Ignatius Krag`. That one
+*was* a typo and **has been corrected in the sheet** — re-export the CSV to pick it up.
 
-### 3.2 `COM` hides whether a companion is a Familiar or a Minion
+**Required in Chunk 2 (not optional):** resolve `Role Details` -> champion through a normalising
+comparison applied to **both sides**:
 
-`Floating_Health_Tracker.lua` derives a model's starting health from the **middle ID segment**
-(`CMP/FAM/MIN/TAL` -> Minion = 2 HP, everything else = 6 HP). Under the new scheme all 12 companions
-carry `02COM`, but 4 of them are `MINION` class:
+1. Unicode-fold ligatures and diacritics (`æ` -> `ae`, `è` -> `e`) — NFKD decompose, strip combining
+   marks, then map the ligatures NFKD leaves alone (`æ`, `œ`, `ß`).
+2. Strip commas, apostrophes and periods.
+3. Collapse runs of whitespace, trim, casefold.
 
-`Tocarin` (`02IRO-02COM-0036`), `Calazi` (`03VOI-02COM-0070`), `Opolkan` (`05AHE-02COM-0136`), `Pashan` (`06VER-02COM-0170`)
+Both sides matter: the champion's own `Name` still contains the comma and the `æ`, so normalising
+only the `Role Details` side fixes nothing. Scope the match **within the dominion** — all 6 dominions
+have exactly 2 champions, so a normalised collision is very unlikely, but scoping it costs nothing.
 
-So the ID alone can no longer determine health — these four would default to 6 HP instead of 2.
-**This is the one genuine design decision in the upgrade**, and it belongs to Chunk 5. Options:
+**Note for you, not a request:** the champion `Name` column still carries commas (`Valex, the Final
+Plume`) and the `æ` in `Thælass Elshara`. If commas genuinely break Dextrous, those cells may hit the
+same problem wherever `Name` is consumed — worth a look, but nothing in this plan depends on it.
 
-- **(a) Recommended — carry class on the deck card.** Have `generate_card_images.py` write the card's
-  class into the deck card's `Description`, and have `Model_ID_Injector.lua` read it when it matches
-  a model (it already reads the card and already clears the model's own description). GMNotes stays
-  exactly the plain ID, so nothing else in the toolkit changes.
-- (b) Suffix GMNotes: `01RHA-02COM-0003|FAMILIAR`. Cheap, but every GMNotes consumer needs a split.
-- (c) Hardcode the four names in the tracker. Fastest, quietly wrong the next time a minion companion
-  is added.
+Long term, putting the champion's *ID* in `Role Details` would remove name-matching entirely. Not
+required by this plan.
+
+### 3.2 Health must come from the Class name, not from the ID — DECIDED
+
+`Floating_Health_Tracker.lua` currently derives a model's starting health by parsing the **middle ID
+segment** (`CMP/FAM/MIN/TAL` -> Minion = 2 HP, everything else = 6 HP). That was always a proxy, and
+the new ID scheme breaks it: all 12 companions carry `02COM`, but 4 of them are `MINION` class —
+`Tocarin` (`02IRO-02COM-0036`), `Calazi` (`03VOI-02COM-0070`), `Opolkan` (`05AHE-02COM-0136`),
+`Pashan` (`06VER-02COM-0170`) — so they'd default to 6 HP instead of 2.
+
+**Decision (Harvey, 2026-09-14): health is derived from the `Class` name. The ID is for sorting only
+and must not be parsed for meaning.** This resolves the question — the remaining work is mechanical.
+
+Consequences for Chunk 5:
+
+- **Delete** the `CLASS_MAP` ID-segment table and the `getModelClass()` ID-parsing function from
+  `Floating_Health_Tracker.lua`, and from the copy embedded in `Model_ID_Injector.lua`. Don't update
+  them for the new codes — they go away entirely. This also means **no future ID re-scheme can break
+  health again**, which is the real win.
+- The model needs the class name available at runtime. `Model_ID_Injector.lua` matches each model
+  against a deck card, so the class has to ride along on that card: have
+  `generate_card_images.py` (Chunk 1) write the card's `Class` into the deck card's `Description`,
+  and have the injector read it there and stamp it onto the model. GMNotes stays exactly the plain
+  ID, so every other GMNotes consumer is untouched.
+- Health rule stays as it is today, just keyed off the class name: `Minion` -> 2, everything else -> 6.
+
+Anywhere else that parses an ID segment for meaning should be treated the same way — flag it in the
+handover rather than porting it to the new codes.
 
 ### 3.3 Index-keyed image mappings will scramble
 
@@ -187,10 +227,47 @@ card ID and drop the index coupling entirely.
 
 ### 3.4 `formatRulesText()` deletes the new effect names
 
-The new effect columns use `{EffectName:CAUSTIC ANTLERS} {EffectType:| *ABILITY*}` tokens. The last
-rule in `formatRulesText()` is `html.replace(/\{.*?\}/g, '')` — a catch-all that strips every curly
-token. Effect names would render as **nothing**. Fix in Chunk 3 by handling `{EffectName:...}` and
-`{EffectType:...}` *before* the catch-all.
+The `Effect N - Name` columns carry Dextrous styling hints, e.g.
+`{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}`. The last rule in `formatRulesText()` is
+`html.replace(/\{.*?\}/g, '')` — a catch-all that strips every curly token, so effect names would
+render as **nothing**.
+
+**The brackets are Dextrous-only markup and must not appear in the web output.** The example above
+should read:
+
+> **SMOLDER** | FREE ACTION
+
+with `SMOLDER` in **Lato semi-bold (600)** and `| FREE ACTION` in **Lato light (300)**.
+
+Spec for Chunk 3:
+
+| Token | Inner text | Web rendering |
+|---|---|---|
+| `{EffectName:X}` | `SMOLDER` | `<span class="effect-name">` — Lato 600 |
+| `{EffectType:Y}` | `| *FREE ACTION*` | `<span class="effect-type">` — Lato 300 |
+
+Details that matter:
+
+- **All 97 populated name fields conform to exactly `{EffectName:X} {EffectType:Y}`, in that order,
+  with nothing outside the two tokens** (verified across all 200 rows). The parser can be strict and
+  throw/warn on anything else rather than degrading silently.
+- The pipe is **inside** the `EffectType` payload — don't synthesise a separator, just emit the text.
+- `EffectType` payloads wrap their label in asterisks (`*FREE ACTION*`), which the existing
+  `*...*` -> `<em>` rule would turn into italics. The spec calls for **light weight, not italic** —
+  so strip the asterisks inside `EffectType` and don't let the italic rule reach them.
+- Two payloads carry a trailing number — `{EffectType:| *SPECIAL ACTION* | 4}` on `Lark`
+  (`03VOI-01CHP-0068`) and `{EffectType:| *ACTION* | 4}` on `Pashan` (`06VER-02COM-0170`). That `4`
+  is a per-effect cost, separate from the card's own `Ether` column (Lark's is blank, Pashan's is 1).
+  Pass it through as part of the light-weight text; don't try to parse it out.
+- The 11 distinct `EffectType` payloads are: `*ABILITY*`, `*ACTION*`, `*ACTION* | 4`,
+  `*ATTACK ACTION*`, `*ATTACK EXERTION*`, `*ATTACK MANOEUVER ACTION*`, `*FREE ACTION*`,
+  `*FREE ATTACK ACTION*`, `*FREE ATTACK REACTION*`, `*MANOEUVRE ACTION*`, `*SPECIAL ACTION* | 4`
+  (each prefixed with `| `). Note `MANOEUVER` and `MANOEUVRE` both appear — a cosmetic inconsistency
+  in the source, harmless to the renderer.
+- Handle these tokens **before** the catch-all strip, and keep the `escapeHtml()`-first ordering.
+- **This introduces Lato as a font dependency** (Google Fonts). It overlaps the typography work in
+  Chunk 7 — load it in Chunk 3 for these two weights, and let Chunk 7 extend the stack rather than
+  redo it. Always declare a real fallback.
 
 ### 3.5 Two TTS zones become one
 
@@ -202,8 +279,25 @@ point one zone at it. Chunk 4.
 ### 3.6 Branding assets are not reachable
 
 `G:\My Drive\...\M3 Branding Guide.pdf` can't be read from this environment — WSL only has `/mnt/c`
-mounted, no `/mnt/g`. **Action for you before Chunk 6:** copy the PDF and the logo PNGs into
-`assets/branding/` in this repo (the folder is created and ready).
+mounted, no `/mnt/g`.
+
+**Action for you before Chunk 6:** copy the PDF and the logo PNGs into `assets/branding/`. From
+Windows Explorer, paste this into the address bar:
+
+```
+\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit\assets\branding
+```
+
+(On older Windows builds the prefix is `\\wsl$\Ubuntu\...` instead.) The repo itself is at
+`\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit`, which is worth pinning to Quick Access.
+
+The `assets/branding/` folder only exists on the `worktree-upgrade-plan` branch, so **it won't be
+there until that branch is merged or checked out**. If Explorer can't find it, either merge the
+branch first or just create the folder by hand — nothing depends on how it gets there.
+
+If pasting into WSL is awkward, `G:\` can instead be mounted so future sessions can read Drive
+directly: `sudo mkdir -p /mnt/g && sudo mount -t drvfs G: /mnt/g` (add it to `/etc/fstab` to persist).
+Optional — the copy-in route is enough for this plan.
 
 ### 3.7 Hardcoded old-format IDs
 
@@ -218,8 +312,10 @@ scenario casts) and `02IRO-03MIN-009`, `05AHE-03MIN-022` (auto-summon minion poo
 | `02IRO-03MIN-009` | `02IRO-04MIN-0048` | Driplet |
 | `05AHE-03MIN-022` | `05AHE-04MIN-0148` | Huskling |
 
-Also present in `Floating_Health_Tracker.lua` **and** duplicated inside `Model_ID_Injector.lua`
-(which embeds the tracker source): the `CMP/FAM/MIN/TAL` segment map. Both copies must change together.
+The `CMP/FAM/MIN/TAL` segment map also appears in `Floating_Health_Tracker.lua` **and** is duplicated
+inside `Model_ID_Injector.lua` (which embeds the tracker source). Per **D2** both copies are
+**deleted**, not updated — see §3.2. These five IDs in `TTS_Loader.lua` are genuine identifiers being
+looked up, not parsed for meaning, so they do just need the new values.
 
 ---
 
@@ -245,16 +341,24 @@ independent — run it any time, including first if you'd rather see progress on
 - Checks: row count; `ID` unique and well-formed; dominion prefix agrees with the `Dominion` column;
   dominion blocks contiguous; `Class` in the 5-value vocabulary; `Role` in
   `{COMPANION, SIGNATURE, ""}`; every `COMPANION`/`SIGNATURE` row has `Role Details`; **every
-  `Role Details` resolves to a champion in the same dominion under normalised comparison**; every
-  non-companion/signature row has empty `Role Details`; deck JSON `ContainedObjects` count ==
-  CSV row count; `DeckIDs` length matches; every `CustomDeck` sheet referenced exists.
+  `Role Details` resolves to a champion in the same dominion under the §3.1 normalised
+  comparison**; every non-companion/signature row has empty `Role Details`; every populated
+  `Effect N - Name` matches the strict `{EffectName:X} {EffectType:Y}` shape from §3.4; deck JSON
+  `ContainedObjects` count == CSV row count; `DeckIDs` length matches; every `CustomDeck` sheet
+  referenced exists.
+- **Write the normalising name-match here, as a reusable function**, and port the same logic into
+  `main.gs` in Chunk 2. Two implementations that disagree is the failure mode to avoid — if the
+  validator passes but the web app drops a link, this is the first place to look.
+- The validator must **not** treat the §3.1 transliterations as errors. `æ`->`ae` and dropped commas
+  are intentional Dextrous-safe forms; they must resolve cleanly. Only a name that fails to resolve
+  *after* normalisation is a failure.
 - Exit non-zero with a readable report on failure.
 
-**Test:** `python3 dextrous/validate_cast.py`. Expect it to **fail** on the 6 link errors from §3.1,
-proving it works. It should pass once those cells are fixed (or immediately, if you fixed them first).
+**Test:** `python3 dextrous/validate_cast.py`.
 
-**Done when:** the validator runs, and its output either lists exactly the 6 known link failures or
-passes clean.
+**Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
+including the 5 transliterated ones. To confirm the link check actually has teeth rather than
+passing vacuously, temporarily corrupt one `Role Details` value and check it's reported, then revert.
 
 ---
 
@@ -283,12 +387,13 @@ passes clean.
   ```
   Keep the function name `getCardImageMappings` — `main.gs` calls it and the flat GAS namespace makes
   renames risky.
-- If §3.2 option (a) is chosen, this is also where the class goes onto the deck card's `Description`.
-  Decide in Chunk 5 and come back, or decide now and do it here — note which in the handover.
+- **Write each card's `Class` into the deck card's `Description`.** Chunk 5 needs it there to set
+  model health from the class name instead of parsing the ID (§3.2). Doing it here means Chunk 5
+  doesn't have to come back and re-run the compiler.
 
-**Test:** run the script; confirm 200 entries in `CardImages.gs` and 200 injected `Nickname`/`GMNotes`;
-import the deck into TTS and hover a few cards from different dominions to confirm names and art
-line up.
+**Test:** run the script; confirm 200 entries in `CardImages.gs`, 200 injected `Nickname`/`GMNotes`,
+and 200 `Description` values carrying the class; import the deck into TTS and hover a few cards from
+different dominions to confirm names and art line up.
 
 **Done when:** script runs clean on the new data, `CardImages.gs` is ID-keyed with 200 cards, and the
 deck imports into TTS with correct hover names.
@@ -339,9 +444,14 @@ from §3.1 resolve.
 
 **Goal:** the web tool renders the richer card data properly.
 
-- `formatRulesText()`: handle `{EffectName:...}` and `{EffectType:...}` **before** the
-  `\{.*?\}` catch-all (see §3.4). Render the effect name as a styled label and the type as its
-  qualifier. Keep the `escapeHtml()`-first ordering — sheet text must stay inert (see `CLAUDE.md`).
+- `formatRulesText()`: implement the §3.4 token spec — `{EffectName:X}` -> Lato 600,
+  `{EffectType:Y}` -> Lato 300, brackets gone, asterisks stripped inside `EffectType` so the italic
+  rule can't reach them, handled **before** the `\{.*?\}` catch-all. Keep the `escapeHtml()`-first
+  ordering — sheet text must stay inert (see `CLAUDE.md`).
+- Load Lato 300 and 600 from Google Fonts with a real fallback stack. Chunk 7 extends this; don't
+  let it redo it.
+- Verify against `{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}` rendering as
+  **SMOLDER** | FREE ACTION, semi-bold then light.
 - Render effect 1 and effect 2 as separate blocks in both the browser card view and the print card.
   Only 7 cards have a second effect, so the layout must collapse cleanly when it's absent.
 - Surface `Keywords` (80/200 cards) and, if there's room, `Flavour Text` (60/200).
@@ -353,11 +463,12 @@ from §3.1 resolve.
   the recruitable basics list. Confirm rather than change.
 
 **Test:** manual walkthrough of all 6 dominions; specifically open `Caldrack` (`01RHA-03FAM-0012`),
-which has both effects populated. Then print-preview a full cast and check the 3x3 A4 pages still
-break correctly and nothing clips.
+which has both effects populated, and `Lark` (`03VOI-01CHP-0068`), whose effect type carries the
+trailing `| 4` cost. Confirm no stray `{`, `}` or `*` characters appear anywhere. Then print-preview
+a full cast and check the 3x3 A4 pages still break correctly and nothing clips.
 
-**Done when:** effect names render (not blank), two-effect cards look right, and print preview is
-unbroken.
+**Done when:** effect names render in semi-bold with their type in light, no Dextrous markup leaks
+into the output, two-effect cards look right, and print preview is unbroken.
 
 ---
 
@@ -392,13 +503,22 @@ reduced scenario (1 or 2) to confirm champions and minions are still correctly s
 
 **Goal:** models get correct IDs and correct default health under the new ID scheme.
 
-- **Decide §3.2 first** and record the decision in the handover. Recommended: option (a).
-- Update the segment map in **both** `Floating_Health_Tracker.lua` and the embedded copy inside
-  `Model_ID_Injector.lua`: `CMP` -> `CHP`, add `COM`, `SIG`, `SPA`, keep `FAM`/`MIN`/`TAL`.
-- Update the ID-format comments in both files (they cite the old `01RHA-02FAM-002` shape).
-- Implement the chosen companion-class resolution so `Tocarin`, `Calazi`, `Opolkan` and `Pashan`
-  default to 2 HP.
+§3.2 is already decided: **health comes from the `Class` name, and the ID is never parsed for
+meaning.** So this chunk removes logic rather than porting it.
+
+- **Delete** `CLASS_MAP` and `getModelClass()` from `Floating_Health_Tracker.lua` and from the copy
+  embedded in `Model_ID_Injector.lua`. Do not update them to the new segment codes.
+- Read the class from the model instead, stamped by the injector from the deck card's `Description`
+  (written in Chunk 1). Health rule unchanged: `Minion` -> 2, everything else -> 6.
+- Decide and record how the class reaches the model at runtime — the injector can either write it
+  onto the model (its own `Description`, which it currently clears) or bake the resolved starting
+  health straight into the injected script. Baking the number in is simpler; writing the class keeps
+  the model self-describing for later tools. Note the choice in the handover either way.
+- Delete the now-stale ID-format comments in both files (they cite `01RHA-02FAM-002` and explain the
+  segment-parsing that's going away).
 - The tracker's shape check (`self.tag == "Tile"`) is independent of card class — leave it alone.
+- **Grep both files for any other ID-segment parsing** before finishing. Anything else deriving
+  meaning from an ID should be reported in the handover, not quietly ported to the new codes.
 
 **Test:** run the injector against the merged Cast deck and the models bag. Confirm each model's
 GMNotes carries a new-format ID, names are cleaned of trailing costs (`Obduron (6)` -> `Obduron`),
@@ -504,14 +624,17 @@ Rules that keep this working:
 
 ## 6. Actions for you (not code)
 
-1. **Fix the 6 `Role Details` cells** in the `Cast` sheet (§3.1). Do this before Chunk 2 or those
-   cards' links stay broken.
-2. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs (§3.6). Needed
-   before Chunk 6.
-3. **Re-export the `Cast` CSV** after the link fixes, over the top of `M3_TTS_DB - Cast.csv`.
-4. **Decide** whether `Role Details` should eventually hold champion **IDs** rather than names. Not
-   required, but it would remove a whole class of silent breakage.
-5. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
+1. **Re-export the `Cast` CSV** over the top of `M3_TTS_DB - Cast.csv`, to pick up the
+   `Ignatious` -> `Ignatius` correction (§3.1). Do this before Chunk 0 so the validator runs against
+   current data. The other 5 name variants are intentional and need no change.
+2. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
+   Explorer instructions are in §3.6. Needed before Chunk 6.
+3. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
+4. *(Optional)* **Check whether commas in the champion `Name` column cause trouble in Dextrous**
+   (§3.1). `Valex, the Final Plume` and `Thælass Elshara` still carry the characters that
+   `Role Details` avoids. Nothing in this plan depends on it.
+5. *(Optional)* **Consider putting champion IDs in `Role Details`** instead of names, which would
+   remove name-matching entirely.
 
 ## 7. Clean-up deferred to the end
 
