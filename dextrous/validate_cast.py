@@ -76,18 +76,25 @@ SEGMENT_BY_CLASS = {
 # the game actually allows, so new combinations pass without a code change:
 #
 #     ABILITY
-#     [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
-#     SPECIAL ACTION
+#     [FREE | SPECIAL] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION] [| N]
 #
 # Square brackets are optional, slashes are either/or. Everything is uppercase.
 #
-# `SPECIAL ACTION` is a whole form in its own right, like `ABILITY` -- not a `SPECIAL`
-# prefix. So `SPECIAL ATTACK` and `FREE SPECIAL ACTION` are not valid. If they should
-# be, move "SPECIAL" into EFFECT_PREFIXES instead.
-EFFECT_STANDALONE = ("ABILITY", "SPECIAL ACTION")
-EFFECT_PREFIXES = ("FREE",)
+# `| N` is the effect's **ether cost** (D10) -- a per-effect cost, distinct from the
+# card-level `Ether` column. Lark is a CHAMPION with a blank `Ether` whose TRICK SHOT
+# still costs 4, so the two are not interchangeable.
+#
+# FREE and SPECIAL occupy the same slot, so `FREE SPECIAL ACTION` is not valid. They
+# pull in opposite directions -- FREE costs nothing, SPECIAL always costs ether -- but
+# if a combination is ever needed, this is the line to change.
+EFFECT_STANDALONE = ("ABILITY",)
+EFFECT_PREFIXES = ("FREE", "SPECIAL")
 EFFECT_CORES = ("ACTION", "ATTACK", "MANOEUVRE", "ATTACK MANOEUVRE")
 EFFECT_SUFFIXES = ("REACTION", "EXERTION")
+
+# A SPECIAL always carries a cost (Harvey, 2026-09-14). Enforced, because a dropped
+# cost is silent otherwise -- it is what went missing from Lark in the D8 re-export.
+EFFECT_PREFIXES_REQUIRING_COST = ("SPECIAL",)
 
 
 def _alternation(options: tuple[str, ...]) -> str:
@@ -99,9 +106,9 @@ def _alternation(options: tuple[str, ...]) -> str:
     return "|".join(re.escape(o) for o in sorted(options, key=len, reverse=True))
 
 
-# Exactly one space between parts. `\s*` here would quietly accept `FREEACTION` and
-# `FREE  ACTION`, both of which reach the card face verbatim.
-EFFECT_TYPE_PATTERN = re.compile(
+# The type without its cost. Exactly one space between parts -- `\s*` here would quietly
+# accept `FREEACTION` and `FREE  ACTION`, both of which reach the card face verbatim.
+EFFECT_BASE_PATTERN = re.compile(
     "^(?:"
     + _alternation(EFFECT_STANDALONE)
     + "|(?:(?:" + _alternation(EFFECT_PREFIXES) + ") )?"
@@ -109,6 +116,10 @@ EFFECT_TYPE_PATTERN = re.compile(
     + "(?: (?:" + _alternation(EFFECT_SUFFIXES) + "))?"
     + ")$"
 )
+
+# `TYPE | N`, one space either side of the bar. The renderer also puts a `|` between
+# the effect name and its type, so a costed header reads `NAME | TYPE | N`.
+EFFECT_COST_PATTERN = re.compile(r"^(?P<base>.+?) \| (?P<cost>\d+)$")
 
 # Pre-D8 spellings. The grammar already rejects these -- `ATTACK ACTION` is a core
 # followed by another core -- but naming them turns "unknown value" into "stale
@@ -121,21 +132,30 @@ SUPERSEDED_EFFECT_TYPES = {
 }
 
 EFFECT_GRAMMAR_SUMMARY = (
-    "ABILITY; SPECIAL ACTION; or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE "
-    "[REACTION/EXERTION]"
+    "ABILITY, or [FREE|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE "
+    "[REACTION/EXERTION], either optionally followed by ' | N' for an ether cost"
 )
+
+
+def parse_effect_type(value: str) -> tuple[str, int | None]:
+    """Split an effect type into its base and its ether cost.
+
+    `'SPECIAL ACTION | 4'` -> `('SPECIAL ACTION', 4)`; `'ABILITY'` -> `('ABILITY', None)`.
+    Chunk 3 needs the two apart to style them; validate first, since this does no
+    checking of its own.
+    """
+    match = EFFECT_COST_PATTERN.match(value)
+    if match:
+        return match.group("base"), int(match.group("cost"))
+    return value, None
 
 
 def effect_type_error(value: str) -> str | None:
     """Return a readable reason `value` is not a valid effect type, or None if it is.
 
-    Diagnoses by peeling the optional prefix and suffix off and naming whatever is
-    left over, so the report says which *part* is wrong rather than just rejecting
-    the whole cell.
+    Diagnoses by peeling the cost, prefix and suffix off and naming whatever is left
+    over, so the report says which *part* is wrong rather than just rejecting the cell.
     """
-    if EFFECT_TYPE_PATTERN.match(value):
-        return None
-
     superseded = SUPERSEDED_EFFECT_TYPES.get(value)
     if superseded:
         return (
@@ -143,14 +163,34 @@ def effect_type_error(value: str) -> str | None:
             "This is a stale export; re-export the sheet."
         )
 
-    if value != value.upper():
-        return f"{value!r} is not uppercase (expected {value.upper()!r})"
+    base, cost = parse_effect_type(value)
 
-    tidied = " ".join(value.split())
-    if tidied != value and EFFECT_TYPE_PATTERN.match(tidied):
+    if "|" in base:
+        return (
+            f"{value!r} has a malformed ether cost — expected a single "
+            f"' | N' with a whole number, as in 'SPECIAL ACTION | 4'"
+        )
+
+    if EFFECT_BASE_PATTERN.match(base):
+        needs_cost = any(
+            base == prefix or base.startswith(prefix + " ")
+            for prefix in EFFECT_PREFIXES_REQUIRING_COST
+        )
+        if needs_cost and cost is None:
+            return (
+                f"{value!r} has no ether cost — a SPECIAL always costs ether, so this "
+                f"should read {value + ' | N'!r} with the cost in place of N"
+            )
+        return None
+
+    if base != base.upper():
+        return f"{base!r} is not uppercase (expected {base.upper()!r})"
+
+    tidied = " ".join(base.split())
+    if tidied != base and EFFECT_BASE_PATTERN.match(tidied):
         return f"{value!r} has irregular whitespace — expected {tidied!r}"
 
-    remainder = value
+    remainder = base
     had_prefix = False
     for prefix in EFFECT_PREFIXES:
         if remainder == prefix or remainder.startswith(prefix + " "):
@@ -164,7 +204,7 @@ def effect_type_error(value: str) -> str | None:
 
     if not remainder:
         return (
-            f"{value!r} has no core — {'FREE' if had_prefix else 'a prefix or suffix'} "
+            f"{value!r} has no core — {'a prefix' if had_prefix else 'a prefix or suffix'} "
             f"must be attached to one of {list(EFFECT_CORES)}"
         )
     return (

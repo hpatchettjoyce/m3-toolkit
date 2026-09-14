@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
-clean** on the current data.
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator reports one
+missing ether cost, Lark's `| 4` (§6 item 1b); everything else is clean.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -37,7 +37,8 @@ them in a later session.
 | D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
-| D9 | **Effect types are validated as a grammar, not a list.** Three forms: `ABILITY`; `SPECIAL ACTION`; or `[FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]` — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
+| D10 | **An effect may carry an ether cost, written `\| N` at the end of `Effect Type N`** — `SPECIAL ACTION \| 4`. This is a *per-effect* cost, distinct from the card-level `Ether` column: Lark is a CHAMPION with a blank `Ether` whose `TRICK SHOT` still costs 4. **A `SPECIAL` always has one**, and the validator enforces that. | §3.4, Chunk 0, Chunk 3 |
+| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
 | D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 3 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
 
@@ -248,24 +249,29 @@ Render as:
 
 > **SMOLDER** | FREE ACTION
 
-with the name in **Lato semi-bold (600)** and the type in **Lato light (300)**.
+with the name in **Lato semi-bold (600)** and the type in **Lato light (300)**. A costed effect
+(D10) carries a third part, so `TRICK SHOT` + `SPECIAL ACTION | 4` renders as:
+
+> **TRICK SHOT** | SPECIAL ACTION | 4
 
 | Column | Example value | Web rendering |
 |---|---|---|
 | `Effect Name N` | `SMOLDER` | `<span class="effect-name">` — Lato 600 |
 | `Effect Type N` | `FREE ACTION` | `<span class="effect-type">` — Lato 300 |
+| `Effect Type N` cost part | `4` in `SPECIAL ACTION \| 4` | its own span — split it out with `parse_effect_type()`, don't print the raw cell |
 | `Effect Details N` | prose with `**BOLD**` / `*italic*` / `{M3/Icons/…}` | existing `formatRulesText()` |
 
 Details that matter:
 
-- **The renderer supplies the `|` separator.** It used to live inside the data; it doesn't any more.
+- **The renderer supplies the `|` between name and type.** That separator used to live in the data
+  and doesn't any more — but **the cost's own `|` does live in the data** (D10), so a costed header
+  has two bars and only the first is the renderer's. Split the cost off before rendering.
 - Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
 - **`Effect Type` follows a grammar** (D9), all caps:
 
   ```
   ABILITY
-  [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
-  SPECIAL ACTION
+  [FREE | SPECIAL] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]  [| N]
   ```
 
   Brackets mark optional parts, slashes either/or, exactly one space between parts.
@@ -273,10 +279,17 @@ Details that matter:
   hasn't been used yet — `FREE MANOEUVRE`, say — passes without a code change. Observed values as
   of the D8 re-export: `ABILITY` (54), `ACTION` (15), `FREE ACTION` (8), `ATTACK` (4),
   `FREE ATTACK REACTION` (4), `MANOEUVRE` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE` (1),
-  `FREE ATTACK` (1), `SPECIAL ACTION` (1).
-- **`SPECIAL ACTION` is a whole form, not a `SPECIAL` prefix.** It stands alone like `ABILITY`, so
-  `SPECIAL ATTACK` and `FREE SPECIAL ACTION` are *not* valid. If they ever should be, move
-  `SPECIAL` into `EFFECT_PREFIXES` in the validator — a one-word change.
+  `FREE ATTACK` (1), `SPECIAL ACTION` (1). `SPECIAL ATTACK` and `SPECIAL MANOEUVRE` are legal and
+  simply unused so far.
+- **`SPECIAL` is a prefix, like `FREE`** — they share the slot, so `FREE SPECIAL ACTION` is not
+  valid. They pull in opposite directions anyway: `FREE` costs nothing, `SPECIAL` always costs ether.
+- **`| N` is the effect's ether cost** (D10), one space either side of the bar. It is a *per-effect*
+  cost and **not** the card-level `Ether` column — Lark is a CHAMPION whose `Ether` is blank and
+  whose `TRICK SHOT` costs 4. A `SPECIAL` without a cost is a data error and the validator says so;
+  that is exactly what went missing from Lark in the D8 re-export (§6 item 1b).
+- `validate_cast.py` exposes **`parse_effect_type()`**, which splits `'SPECIAL ACTION | 4'` into
+  `('SPECIAL ACTION', 4)`. Chunk 3 needs the two apart to style them; port it rather than
+  re-splitting by hand.
 - The validator names *which part* is wrong — an unknown core, a prefix with no core, irregular
   whitespace, lower case, or one of the four pre-D8 spellings — rather than just rejecting the cell.
 - **D8 dropped the redundant trailing `ACTION`.** An attack is an action unless it is a reaction, so
@@ -398,9 +411,8 @@ are each reported, and every corruption exits 1. A naive exact match fails exact
 §3.1; under normalisation all 24 links resolve.
 
 **Effect types are checked against the D9 grammar, not a closed list**, so vocabulary tweaks no
-longer require a validator change. **Passes clean, exit 0.** The 4 pairing failures it originally
-found are fixed (§6 item 1a), and `SPECIAL ACTION` is in the grammar as a standalone form (§6 item
-1b).
+longer require a validator change. The 4 pairing failures it originally found are fixed (§6 item
+1a). One outstanding failure: Lark's missing `| 4` ether cost (§6 item 1b). Everything else passes.
 
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
@@ -725,9 +737,11 @@ unaffected.
    passes clean. The roster itself is unchanged — same 200 IDs and names, verified against the
    previously committed CSV.
 
-1b. ~~**Decide what `Lark`'s effect type should be**~~ — **settled 2026-09-14**. `SPECIAL ACTION`
-   is a legitimate third form, not a column mix-up. Added to the grammar as a standalone alongside
-   `ABILITY`; the sheet needs no change. Lark (`03VOI-01CHP-0068`) is its only user.
+1b. **Restore `Lark`'s ether cost.** `03VOI-01CHP-0068` (sheet row 69), effect `TRICK SHOT`, should
+   read **`SPECIAL ACTION | 4`** — the `| 4` was dropped in the D8 re-export. `SPECIAL ACTION` is a
+   legitimate type, not the column mix-up it first looked like; only the cost is missing. Fix in the
+   sheet and re-export. **Until then `validate_cast.py` exits 1 with exactly this one failure**,
+   which does not block Chunk 1.
 
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
