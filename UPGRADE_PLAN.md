@@ -298,9 +298,7 @@ Windows Explorer, paste this into the address bar:
 (On older Windows builds the prefix is `\\wsl$\Ubuntu\...` instead.) The repo itself is at
 `\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit`, which is worth pinning to Quick Access.
 
-The `assets/branding/` folder only exists on the `worktree-upgrade-plan` branch, so **it won't be
-there until that branch is merged or checked out**. If Explorer can't find it, either merge the
-branch first or just create the folder by hand — nothing depends on how it gets there.
+If Explorer can't find the folder, just create it by hand — nothing depends on how it gets there.
 
 If pasting into WSL is awkward, `G:\` can instead be mounted so future sessions can read Drive
 directly: `sudo mkdir -p /mnt/g && sudo mount -t drvfs G: /mnt/g` (add it to `/etc/fstab` to persist).
@@ -652,13 +650,33 @@ Rules that keep this working:
 - If a chunk ends partial, say exactly where the seam is.
 - **Update this plan's §1–§3 if a finding turns out to be wrong.** Later sessions trust it.
 
+### 5.5 Git policy — work on `main`
+
+**One commit per chunk, on `main`, pushed.** That commit *is* the rollback point for the chunk,
+which is the whole reason the work is chunked.
+
+- **No feature branches, no worktrees.** Tried on the planning pass and it cost more than it gave:
+  the same CSV drifted in two places at once, `UPGRADE_PLAN.md` was invisible in the working
+  checkout, and the merge back was blocked by untracked files. A branch adds a merge to get wrong
+  and hides the work in the meantime.
+- Never force-push or rewrite pushed history — the rollback points only work if they stay put.
+- Commit the user's own data re-exports too (CSV, deck JSON) as they arrive, so the input a chunk
+  compiled against is recoverable.
+- **Before touching a modified input file, check whether it's newer than the committed copy.** This
+  bit twice during planning: the `Cast` CSV and the deck JSON were both re-exported mid-session, and
+  acting on the stale assumption would have destroyed the newer data.
+
+Note for background sessions only: they're force-isolated into a worktree unless the project sets
+`"worktree": {"bgIsolation": "none"}` in `.claude/settings.local.json`. Interactive sessions are
+unaffected.
+
 ---
 
 ## 6. Actions for you (not code)
 
 1. ~~**Re-export the `Cast` CSV**~~ — **done 2026-09-14**, twice. The `Ignatious` -> `Ignatius` fix,
    the `MANOEUVER` -> `MANOEUVRE` spelling correction, and the D7 effect-column re-split are all in.
-   The copy committed on this branch matches your working copy. The 5 `Role Details` name variants
+   The copy committed on `main` matches your working copy. The 5 `Role Details` name variants
    are intentional and need no change.
 2. ~~**Fix the `Cinderhulk` effect-type casing**~~ — **done**, arrived with the D7 re-export as
    `ATTACK MANOEUVRE ACTION`.
