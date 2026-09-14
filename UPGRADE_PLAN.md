@@ -260,10 +260,17 @@ Details that matter:
   is a per-effect cost, separate from the card's own `Ether` column (Lark's is blank, Pashan's is 1).
   Pass it through as part of the light-weight text; don't try to parse it out.
 - The 11 distinct `EffectType` payloads are: `*ABILITY*`, `*ACTION*`, `*ACTION* | 4`,
-  `*ATTACK ACTION*`, `*ATTACK EXERTION*`, `*ATTACK MANOEUVER ACTION*`, `*FREE ACTION*`,
+  `*ATTACK ACTION*`, `*ATTACK EXERTION*`, `*ATTACK manoeuvre ACTION*`, `*FREE ACTION*`,
   `*FREE ATTACK ACTION*`, `*FREE ATTACK REACTION*`, `*MANOEUVRE ACTION*`, `*SPECIAL ACTION* | 4`
-  (each prefixed with `| `). Note `MANOEUVER` and `MANOEUVRE` both appear — a cosmetic inconsistency
-  in the source, harmless to the renderer.
+  (each prefixed with `| `).
+- **One casing artifact to fix in the sheet:** `Cinderhulk` (`01RHA-03FAM-0006`) reads
+  `{EffectType:| *ATTACK manoeuvre ACTION*}` — lowercase mid-label, where every other payload is
+  fully uppercase. It's a leftover from the `MANOEUVER` -> `manoeuvre` spelling correction. Cosmetic
+  only: it would render as "| ATTACK manoeuvre ACTION". Should be `*ATTACK MANOEUVRE ACTION*`.
+  Don't work around it in the renderer — fix the cell.
+- Lowercase `manoeuvre` in the `Effect N - Details` columns is **correct and intentional** — it's
+  prose (`When an enemy performs a *manoeuvre*...`), 18 occurrences. Only the all-caps label inside
+  `EffectType` is affected.
 - Handle these tokens **before** the catch-all strip, and keep the `escapeHtml()`-first ordering.
 - **This introduces Lato as a font dependency** (Google Fonts). It overlaps the typography work in
   Chunk 7 — load it in Chunk 3 for these two weights, and let Chunk 7 extend the stack rather than
@@ -624,16 +631,19 @@ Rules that keep this working:
 
 ## 6. Actions for you (not code)
 
-1. **Re-export the `Cast` CSV** over the top of `M3_TTS_DB - Cast.csv`, to pick up the
-   `Ignatious` -> `Ignatius` correction (§3.1). Do this before Chunk 0 so the validator runs against
-   current data. The other 5 name variants are intentional and need no change.
-2. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
+1. ~~**Re-export the `Cast` CSV**~~ — **done 2026-09-14.** The `Ignatious` -> `Ignatius` fix and the
+   `MANOEUVER` -> `MANOEUVRE` spelling correction are both in, and the committed copy on this branch
+   is current. The other 5 name variants are intentional and need no change.
+2. **Fix the `Cinderhulk` effect-type casing** (`01RHA-03FAM-0006`), per §3.4 — `*ATTACK manoeuvre
+   ACTION*` should be `*ATTACK MANOEUVRE ACTION*`. Cosmetic, needed before Chunk 3 renders it.
+   Re-export afterwards.
+3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6.
-3. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
-4. *(Optional)* **Check whether commas in the champion `Name` column cause trouble in Dextrous**
+4. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
+5. *(Optional)* **Check whether commas in the champion `Name` column cause trouble in Dextrous**
    (§3.1). `Valex, the Final Plume` and `Thælass Elshara` still carry the characters that
    `Role Details` avoids. Nothing in this plan depends on it.
-5. *(Optional)* **Consider putting champion IDs in `Role Details`** instead of names, which would
+6. *(Optional)* **Consider putting champion IDs in `Role Details`** instead of names, which would
    remove name-matching entirely.
 
 ## 7. Clean-up deferred to the end
