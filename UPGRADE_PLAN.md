@@ -34,13 +34,14 @@ them in a later session.
 | D1 | The `æ`->`ae` and dropped-comma forms in `Role Details` are **intentional** Dextrous-safe transliterations, not typos. Name matching must normalise; the data is correct as-is. | §3.1, Chunk 0, Chunk 2 |
 | D2 | Model health derives from the **`Class` name**. The ID changed for sorting only and **must never be parsed for meaning**. | §3.2, Chunk 1, Chunk 5 |
 | D3 | `CardImages.gs` becomes an **ID-keyed map**; row-index lookups go away. | §3.3, Chunk 1, Chunk 2 |
-| D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
+| D4 | ~~Effect headers render as **Lato semi-bold name, light type**~~. *(Superseded in mechanism by D7, then **withdrawn entirely by D11** — the web app renders card images, so there is no web effect styling to spec. The "no Dextrous markup reaches the output" half is now enforced by `validate_cast.py` instead.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
-| D10 | **An effect may carry an ether cost, written `\| N` at the end of `Effect Type N`** — `SPECIAL ACTION \| 4`. This is a *per-effect* cost, distinct from the card-level `Ether` column: Lark is a CHAMPION with a blank `Ether` whose `TRICK SHOT` still costs 4. **A `SPECIAL` always has one**, and the validator enforces that. | §3.4, Chunk 0, Chunk 3 |
-| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
-| D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 3 |
-| D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
+| D11 | **The web app renders card *images*, not effect text — Chunk 3 is withdrawn.** The browser view already paints the sprite-sheet card face, and print preview is a deliberately plain, printer-friendly text card that is staying that way. No effect styling work is needed; the one real requirement (don't lose effect text that used to print) folds into Chunk 2. | §3.4, Chunk 2, Chunk 3 |
+| D10 | **An effect may carry an ether cost, written `\| N` at the end of `Effect Type N`** — `SPECIAL ACTION \| 4`. This is a *per-effect* cost, distinct from the card-level `Ether` column: Lark is a CHAMPION with a blank `Ether` whose `TRICK SHOT` still costs 4. **A `SPECIAL` always has one**, and the validator enforces that. | §3.4, Chunk 0, Chunk 2 |
+| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 2 |
+| D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 2 |
+| D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 2 |
 
 ---
 
@@ -151,7 +152,7 @@ Dominion prefixes, in sheet order (now contiguous blocks of 33-34 rows):
 | Veritian | Fettermaw, Resonue, Fluxen, Chronatic Projection |
 
 These need **no per-card code** — they arrive automatically once the parser reads the new sheet.
-Item 3 of the brief is therefore mostly a consequence of Chunks 2-3, not separate work.
+Item 3 of the brief is therefore mostly a consequence of Chunk 2, not separate work.
 
 ---
 
@@ -237,35 +238,49 @@ The frontend's `champ_<index>` / `unit_<index>` / `sp_<index>` IDs are row-index
 internal to a page load so they don't corrupt anything, but Chunk 2 should switch them to the stable
 card ID and drop the index coupling entirely.
 
-### 3.4 Effect rendering spec — no longer a bug, just a spec
+### 3.4 Effect data spec — and why the web app no longer styles it
 
-**Superseded by the 2026-09-14 schema revision (D7), and much simpler as a result.** The earlier
-export packed both values into one cell as `{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}`, which
-`formatRulesText()`'s catch-all `html.replace(/\{.*?\}/g, '')` would have stripped to nothing. That
-bug is **gone**: name and type are now separate, clean columns with no markup, no asterisks and no
-pipe.
+**Two revisions have reshaped this section.** D7 split name and type into separate clean columns,
+removing a real parsing bug. **D11 then withdrew the web-styling half entirely**: the browser view
+paints the sprite-sheet card image, and effect text appears in exactly one place —
+`formatRulesText(card.effect)` at `webapp/CastRecruiter.html:1466`, inside the print card.
+
+So what follows is a **data** spec. It governs three consumers, none of which is web styling:
+
+1. **`validate_cast.py`** — the grammar and cost rules below are enforced there.
+2. **The Dextrous card faces** — the card art *is* the rendering; these columns are what Dextrous
+   prints onto it.
+3. **The print card** — a plain, printer-friendly text card. It needs the text, not the styling.
+
+The old bug, recorded so nobody re-fixes it: the pre-D7 export packed both values into one cell as
+`{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}`, which `formatRulesText()`'s catch-all
+`html.replace(/\{.*?\}/g, '')` would have stripped to nothing. Gone — name and type are separate,
+clean columns with no markup, no asterisks and no pipe.
 
 Render as:
 
 > **SMOLDER** | FREE ACTION
 
-with the name in **Lato semi-bold (600)** and the type in **Lato light (300)**. A costed effect
-(D10) carries a third part, so `TRICK SHOT` + `SPECIAL ACTION | 4` renders as:
+A costed effect (D10) carries a third part, so `TRICK SHOT` + `SPECIAL ACTION | 4` reads:
 
-> **TRICK SHOT** | SPECIAL ACTION | 4
+> TRICK SHOT | SPECIAL ACTION | 4
 
-| Column | Example value | Web rendering |
+**On the card face** that is Dextrous's job. **On the print card** it is one plain-text line that
+Chunk 2 composes into the legacy `effect` string — no spans, no font weights (D11).
+
+| Column | Example value | Where it goes |
 |---|---|---|
-| `Effect Name N` | `SMOLDER` | `<span class="effect-name">` — Lato 600 |
-| `Effect Type N` | `FREE ACTION` | `<span class="effect-type">` — Lato 300 |
-| `Effect Type N` cost part | `4` in `SPECIAL ACTION \| 4` | its own span — split it out with `parse_effect_type()`, don't print the raw cell |
-| `Effect Details N` | prose with `**BOLD**` / `*italic*` / `{M3/Icons/…}` | existing `formatRulesText()` |
+| `Effect Name N` | `SMOLDER` | first part of the composed header line |
+| `Effect Type N` | `FREE ACTION` | second part, ` | `-separated |
+| `Effect Type N` cost part | `4` in `SPECIAL ACTION \| 4` | already inside the cell — print it as-is; no need to split it out |
+| `Effect Details N` | prose with `**BOLD**` / `*italic*` / `{M3/Icons/…}` | existing `formatRulesText()`, unchanged |
 
 Details that matter:
 
-- **The renderer supplies the `|` between name and type.** That separator used to live in the data
-  and doesn't any more — but **the cost's own `|` does live in the data** (D10), so a costed header
-  has two bars and only the first is the renderer's. Split the cost off before rendering.
+- **Whoever composes the header supplies the `|` between name and type.** That separator used to
+  live in the data and doesn't any more — but **the cost's own `|` does live in the data** (D10), so
+  a costed header ends up with two bars and only the first is composed. For the print card that is
+  fine: both are literal text.
 - Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
 - **`Effect Type` follows a grammar** (D9), all caps:
 
@@ -288,8 +303,8 @@ Details that matter:
   whose `TRICK SHOT` costs 4. A `SPECIAL` without a cost is a data error and the validator says so;
   that is exactly what went missing from Lark in the D8 re-export (§6 item 1b).
 - `validate_cast.py` exposes **`parse_effect_type()`**, which splits `'SPECIAL ACTION | 4'` into
-  `('SPECIAL ACTION', 4)`. Chunk 3 needs the two apart to style them; port it rather than
-  re-splitting by hand.
+  `('SPECIAL ACTION', 4)`. Nothing in the web app needs the two apart any more (D11) — it is there
+  for the validator and for whoever needs the cost as a number later.
 - The validator names *which part* is wrong — an unknown core, a prefix with no core, irregular
   whitespace, lower case, or one of the four pre-D8 spellings — rather than just rejecting the cell.
 - **D8 dropped the redundant trailing `ACTION`.** An attack is an action unless it is a reaction, so
@@ -297,15 +312,15 @@ Details that matter:
   The word is kept where it carries meaning — `ACTION`, `FREE ACTION`, `SPECIAL ACTION` — and
   `REACTION` is untouched. The validator recognises the four pre-D8 spellings and names them as a
   stale export rather than just an unknown value. **Nothing renders the word `ACTION` itself**, so
-  Chunk 3 needs no change here; it prints the cell as given.
+  nothing needs to change here; the cell prints as given.
 - **`formatRulesText()` still needs its curly-token rules** — but only for `Effect Details` and
   `Keywords`, which carry icon tokens like `{M3/Icons/Dice/SQUARE.png}` (46 cells). The existing
   rules already convert those to `<strong>[SQUARE]</strong>` **before** the catch-all, so this path
   works today. Don't remove it; just don't let it near the name/type columns, which need no parsing.
 - Lowercase `manoeuvre` in `Effect Details` is **correct prose** (`When an enemy performs a
   *manoeuvre*...`) and must be left alone. Only the `Effect Type` labels are all-caps.
-- **Lato is a font dependency** (Google Fonts). It overlaps Chunk 7's typography work — load the two
-  weights in Chunk 3 and let Chunk 7 extend the stack rather than redo it. Declare a real fallback.
+- **Lato is no longer a dependency of this section** (D11 — no effect styling). If the branding work
+  wants it, **Chunk 7 owns it outright**; there is no longer an earlier chunk to coordinate with.
 
 Two things this revision also cleared, recorded so nobody hunts for them: the `Cinderhulk` lowercase
 casing artifact is **fixed** (now `ATTACK MANOEUVRE` under D8), and the trailing per-effect cost that used
@@ -362,12 +377,15 @@ looked up, not parsed for meaning, so they do just need the new values.
 
 ## 4. Chunks
 
-Dependency order. **0 -> 1 -> 2 -> 3** is a hard chain (each needs the previous). **4 -> 5** is a
-second chain that needs 1. **6 -> 7** (branding) touches only `CastRecruiter.html` styling and is
+Dependency order. **0 -> 1 -> 2** is a hard chain (each needs the previous). **4 -> 5** is a second
+chain that needs 1. **6 -> 7** (branding) touches only `CastRecruiter.html` styling and is
 independent — run it any time, including first if you'd rather see progress on the look early.
 
+**Chunk 3 was withdrawn (D11)** and its number is kept as a tombstone so 4-7 don't shift under the
+handover notes that already cite them.
+
 ```
-0 ── 1 ─┬─ 2 ── 3          (data pipeline -> backend -> frontend)
+0 ── 1 ─┬─ 2               (data pipeline -> backend)
         └─ 4 ── 5          (TTS loader -> models/health)
    6 ── 7                  (branding, independent)
 ```
@@ -481,9 +499,27 @@ deck imports into TTS with correct hover names.
   **`tiedChampionId` must then also be the champion's card ID** — the frontend compares it directly
   against `state.champion` (line ~917 for loyals, ~1161 for signatures), so the two must use the same
   key space or every link silently fails.
-- Pass through the new fields: `effect1Name`, `effect1Details`, `effect2Name`, `effect2Details`,
-  `keywords`, `flavourText`, `artwork`. Keep a legacy `effect` key (effect 1 details) so the frontend
-  keeps rendering while Chunk 3 is still pending — that's what makes this chunk independently testable.
+- **Compose the `effect` string — this is the contract now, not a temporary bridge (D11).** The print
+  card renders `card.effect` through `formatRulesText()` and nothing else, so everything that must
+  reach paper has to be in that one string. Under the old single `Effect` column the name and type
+  were already inside it; passing only `Effect Details 1` would **silently drop the effect name, type,
+  cost, and the whole second effect on the 7 cards that have one.** Build it as plain text:
+
+  ```
+  SMOLDER | FREE ACTION
+  All allies within **AURA(5)** become "Molten"...
+  VITRIOLIC QUENCH | ABILITY
+  ...
+  ```
+
+  Name and type joined by ` | `, the cost already inside the type cell (D10), details on the next
+  line, effects separated by a newline. Omit the header line where a card has details but no
+  name/type (113 of 200 cards). Note `formatRulesText()` collapses `\n+` to a single `<br>`, so a
+  blank line between effects won't render as a gap — acceptable under D11's "minimal styling", not a
+  bug to chase.
+- Also pass through `effect1Name`, `effect1Type`, `effect1Details`, the `* 2` equivalents,
+  `keywords`, `flavourText` and `artwork` as structured fields. Nothing consumes them today; they
+  cost nothing and save a backend round trip if anything ever does.
 - Keep the closing `JSON.parse(JSON.stringify(db))` sanitiser.
 - **Do not** add a second card-fetching function in another `.gs` file (see `CLAUDE.md` — flat global
   namespace; this has bitten the project before).
@@ -493,43 +529,50 @@ populates, basics list populates, talismans appear, signature actions show under
 loyal companions show under the right champion. Confirm the new cards from §2.5 are present. Confirm
 card art still loads.
 
-**Done when:** all 6 dominions build a legal cast end to end, and the 6 companion/signature links
-from §3.1 resolve.
+- **Verify the print card still works** (D11): open print preview with a full cast and confirm the
+  effect text appears, icon tokens render as `[SQUARE]` rather than raw `{M3/Icons/…}`, no stray `{`,
+  `}` or `*` survive, and the 3x3 A4 page grid still breaks correctly. Keep it plain — improving the
+  print styling is explicitly **not** in scope.
+- Confirm the `cost > 0` recruitability guard still behaves: `Driplet` and `Huskling` have **blank**
+  Ether, which `parseInt('') || 0` keeps out of the recruitable basics list. Confirm rather than
+  change.
+
+**Done when:** all 6 dominions build a legal cast end to end, the 6 companion/signature links from
+§3.1 resolve, and print preview still produces readable cards.
 
 ---
 
-### Chunk 3 — Frontend: new effect model and new fields
+### Chunk 3 — ~~Frontend: new effect model and new fields~~ — WITHDRAWN (D11)
 
-**Goal:** the web tool renders the richer card data properly.
+**Not being done.** The web app renders card *images*, not effect text, so there is no effect model
+to build in the frontend.
 
-- Render the effect header per §3.4: `Effect Name N` in Lato 600, then a renderer-supplied `|`, then
-  `Effect Type N` in Lato 300. **No token parsing** — these columns are clean (D7). Pass
-  `Effect Details N` through `formatRulesText()` as before.
-- Leave `formatRulesText()`'s existing curly-token rules alone: `Effect Details` and `Keywords` still
-  carry `{M3/Icons/…}` tokens (46 cells), and the existing rules already convert them ahead of the
-  `\{.*?\}` catch-all. Keep the `escapeHtml()`-first ordering — sheet text must stay inert (see
-  `CLAUDE.md`).
-- Load Lato 300 and 600 from Google Fonts with a real fallback stack. Chunk 7 extends this; don't
-  let it redo it.
-- Render effect 1 and effect 2 as separate blocks in both the browser card view and the print card.
-  Only 7 cards have a second effect, so the layout must collapse cleanly when it's absent.
-- Surface `Keywords` (80/200 cards) and, if there's room, `Flavour` (60/200).
-- Re-check the print card layout: it's pinned to poker size (63.5mm x 88.9mm) in a 3x3 A4 grid, so
-  two effects plus keywords is a real space constraint. Shrinking type is fine; breaking the 3x3
-  page grid is not.
-- Verify the auto-minion injection and the `cost > 0` recruitability guard still behave: `Driplet`
-  and `Huskling` have **blank** Ether, which `parseInt('') || 0` turns into 0, so they stay out of
-  the recruitable basics list. Confirm rather than change.
+- The **browser view** paints the sprite-sheet card face via `getCardStyle()`
+  (`webapp/CastRecruiter.html:1266`). It never rendered effect text.
+- **Print preview** is the only place effect text appears, through
+  `formatRulesText(card.effect)` (line 1466). It is meant to be a plain, printer-friendly text card
+  for home printing and **stays that way** — Harvey's call, 2026-09-14. Improving its styling is
+  explicitly out of scope for this plan; it may get attention later.
 
-**Test:** manual walkthrough of all 6 dominions; specifically open `Caldrack` (`01RHA-03FAM-0012`),
-which has both effects populated — expect `CAUSTIC ANTLERS | ABILITY` and
-`VITRIOLIC QUENCH | FREE ACTION`. Check a card whose details carry an icon token, e.g. `Fissureback`
-(`01RHA-03FAM-0014`), renders `[SQUARE]` rather than a raw `{M3/Icons/…}` string. Confirm no stray
-`{`, `}` or `*` characters appear anywhere. Then print-preview a full cast and check the 3x3 A4
-pages still break correctly and nothing clips.
+What this withdrawal dropped: Lato 300/600 loading, `effect-name`/`effect-type` spans, two-effect
+blocks, and surfacing `Keywords` and `Flavour`.
 
-**Done when:** effect names render in semi-bold with their type in light, icon tokens still resolve,
-two-effect cards look right, and print preview is unbroken.
+What survived, and where it went — **all of it into Chunk 2**:
+
+- **Compose the legacy `effect` string** so the print card keeps showing the name, type, cost and
+  both effects. This is the one genuine regression risk in the whole withdrawal: pass only
+  `Effect Details 1` and the print card silently loses information it used to print.
+- **Verify print preview still works** — icon tokens, no stray braces, 3x3 A4 grid intact.
+- **Confirm the `cost > 0` recruitability guard** still keeps `Driplet` and `Huskling` out of the
+  basics list.
+
+`formatRulesText()` stays exactly as it is: it escapes first, converts `**bold**`, `*italic*` and
+`{M3/Icons/…}` tokens, then strips leftover braces. Don't remove its curly-token rules — 46 cells
+still carry icon tokens, and they reach paper through this function.
+
+The frontend's Title-Case class comparisons (`u.class === 'Familiar'` and friends, at lines 965,
+1059, 1134, 1635, 1651) need **no change**: Chunk 2 normalises `Class` to Title Case at the parse
+boundary precisely so the 1734-line frontend stays untouched.
 
 ---
 
