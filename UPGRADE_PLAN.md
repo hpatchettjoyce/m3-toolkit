@@ -1,7 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** not started — Chunk 0 is next
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator currently
+reports 4 real data gaps; see §6 item 1a.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -365,6 +366,18 @@ independent — run it any time, including first if you'd rather see progress on
 
 **Test:** `python3 dextrous/validate_cast.py`.
 
+**Status: done 2026-09-14.** `dextrous/validate_cast.py` implements every check above, plus three
+the survey implied: the global sequence and `#` column must agree with row position, and the middle
+ID segment must agree with the authoritative `Role`/`Class` columns (a consistency check on the ID,
+not deriving meaning from it — D2 stands). `normalise_name()` is the reusable function Chunk 2 ports
+into `main.gs`. Teeth verified by corrupting a copy of the CSV: a broken `Role Details`, a stale
+`Effect 1 - Name` header, a split dominion block, an unknown effect type and a `{EffectName:…}` cell
+are each reported, and every corruption exits 1. A naive exact match fails exactly the 5 rows in
+§3.1; under normalisation all 24 links resolve.
+
+**Outstanding:** the validator exits 1 on the current data because of 4 genuine missing effect
+name/type cells — §6 item 1a. Everything else is clean.
+
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
 passing vacuously, temporarily corrupt one `Role Details` value and check it's reported, then revert.
@@ -680,6 +693,21 @@ unaffected.
    are intentional and need no change.
 2. ~~**Fix the `Cinderhulk` effect-type casing**~~ — **done**, arrived with the D7 re-export as
    `ATTACK MANOEUVRE ACTION`.
+1a. **Fill in 4 missing effect name/type cells** — found by the Chunk 0 validator, all in the
+   Veritian block. `Effect Name N` and `Effect Type N` must be populated together (§3.4); these four
+   rows have one without the other:
+
+   | Sheet row | ID | Card | Missing |
+   |---|---|---|---|
+   | 170 | `06VER-01CHP-0169` | Clement Tacitus | `Effect Name 1` (type is `FREE ACTION`) |
+   | 176 | `06VER-03FAM-0175` | Occulacer | `Effect Type 1` (name is `STINGING TENTACLES`) |
+   | 177 | `06VER-03FAM-0176` | Hastaca | `Effect Name 1` (type is `ABILITY`) |
+   | 185 | `06VER-06SIG-0184` | Apertures of Mirimara | `Effect Type 1` (name is `JUMP START`) |
+
+   Fill them in the sheet and re-export the CSV. **This does not block Chunk 1** — it affects the
+   rendered header on 4 cards only. Until it is fixed `validate_cast.py` exits 1, so later chunks
+   should read the report rather than just the exit code.
+
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
    prerequisite, and it only blocks Chunks 6–7.**
