@@ -33,9 +33,10 @@ them in a later session.
 | D1 | The `æ`->`ae` and dropped-comma forms in `Role Details` are **intentional** Dextrous-safe transliterations, not typos. Name matching must normalise; the data is correct as-is. | §3.1, Chunk 0, Chunk 2 |
 | D2 | Model health derives from the **`Class` name**. The ID changed for sorting only and **must never be parsed for meaning**. | §3.2, Chunk 1, Chunk 5 |
 | D3 | `CardImages.gs` becomes an **ID-keyed map**; row-index lookups go away. | §3.3, Chunk 1, Chunk 2 |
-| D4 | Dextrous markup (`{EffectName:…}`, `{EffectType:…}`, asterisks) **must not appear in web output**. It converts to styled Lato text — semi-bold name, light type. | §3.4, Chunk 3 |
+| D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
+| D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
 
 ---
 
@@ -64,9 +65,10 @@ New `Cast`:
 
 ```
 #, Name, Dominion, Class, Role, Role Details, ID,
-Effect 1 - Name, Effect 1 - Details, Effect 2 - Name, Effect 2 - Details,
+Effect Name 1, Effect Type 1, Effect Details 1,
+Effect Name 2, Effect Type 2, Effect Details 2,
 Keywords, Ether, Prowess, Fortitude, Artwork, #Artwork Config,
-Flavour Text, Lore, Name Inspiration, Art Direction, Mechanic(s)
+Flavour, Lore, Name Inspiration, Art Direction, Mechanic(s)
 ```
 
 Four changes that break code:
@@ -79,11 +81,17 @@ Four changes that break code:
 3. **`Role` is now a vocabulary, not a sentence.** Old: free text `"Flint Dross's Loyal Companion"`,
    regex-parsed. New: `COMPANION` (12), `SIGNATURE` (12), or blank (176), with the champion's
    **name** in the new `Role Details` column.
-4. **`Effect` split into four columns.** Effect 1 name/details and Effect 2 name/details, replacing
-   the single `Effect (str)`.
+4. **`Effect` split into six columns** — name, type and details, twice over — replacing the single
+   `Effect (str)`. See §3.4; the type is its own clean column, so no markup parsing is needed.
 
-Population counts: `Effect 1 - Details` 197/200, `Effect 1 - Name` 90/200, `Effect 2 - *` 7/200,
-`Keywords` 80/200, `Flavour Text` 60/200, `Artwork` 89/200, `Lore` 1/200.
+Population counts: `Effect Details 1` 197/200, `Effect Name 1` and `Effect Type 1` 90/200 each,
+`Effect * 2` 7/200 each, `Keywords` 80/200, `Flavour` 60/200, `Artwork` 89/200, `Lore` 1/200.
+
+> **Schema revised 2026-09-14 (D7).** An earlier export combined the effect name and type into a
+> single `Effect 1 - Name` cell carrying `{EffectName:X} {EffectType:Y}` Dextrous markup, and called
+> the flavour column `Flavour Text`. Both are gone: name and type are now separate clean columns and
+> the column is `Flavour`. If you meet `Effect 1 - Name` anywhere, you're looking at a stale export.
+> The card roster itself did **not** change — same 200 IDs, no additions, removals or renames.
 
 ### 2.3 Class and role census
 
@@ -225,56 +233,48 @@ The frontend's `champ_<index>` / `unit_<index>` / `sp_<index>` IDs are row-index
 internal to a page load so they don't corrupt anything, but Chunk 2 should switch them to the stable
 card ID and drop the index coupling entirely.
 
-### 3.4 `formatRulesText()` deletes the new effect names
+### 3.4 Effect rendering spec — no longer a bug, just a spec
 
-The `Effect N - Name` columns carry Dextrous styling hints, e.g.
-`{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}`. The last rule in `formatRulesText()` is
-`html.replace(/\{.*?\}/g, '')` — a catch-all that strips every curly token, so effect names would
-render as **nothing**.
+**Superseded by the 2026-09-14 schema revision (D7), and much simpler as a result.** The earlier
+export packed both values into one cell as `{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}`, which
+`formatRulesText()`'s catch-all `html.replace(/\{.*?\}/g, '')` would have stripped to nothing. That
+bug is **gone**: name and type are now separate, clean columns with no markup, no asterisks and no
+pipe.
 
-**The brackets are Dextrous-only markup and must not appear in the web output.** The example above
-should read:
+Render as:
 
 > **SMOLDER** | FREE ACTION
 
-with `SMOLDER` in **Lato semi-bold (600)** and `| FREE ACTION` in **Lato light (300)**.
+with the name in **Lato semi-bold (600)** and the type in **Lato light (300)**.
 
-Spec for Chunk 3:
-
-| Token | Inner text | Web rendering |
+| Column | Example value | Web rendering |
 |---|---|---|
-| `{EffectName:X}` | `SMOLDER` | `<span class="effect-name">` — Lato 600 |
-| `{EffectType:Y}` | `| *FREE ACTION*` | `<span class="effect-type">` — Lato 300 |
+| `Effect Name N` | `SMOLDER` | `<span class="effect-name">` — Lato 600 |
+| `Effect Type N` | `FREE ACTION` | `<span class="effect-type">` — Lato 300 |
+| `Effect Details N` | prose with `**BOLD**` / `*italic*` / `{M3/Icons/…}` | existing `formatRulesText()` |
 
 Details that matter:
 
-- **All 97 populated name fields conform to exactly `{EffectName:X} {EffectType:Y}`, in that order,
-  with nothing outside the two tokens** (verified across all 200 rows). The parser can be strict and
-  throw/warn on anything else rather than degrading silently.
-- The pipe is **inside** the `EffectType` payload — don't synthesise a separator, just emit the text.
-- `EffectType` payloads wrap their label in asterisks (`*FREE ACTION*`), which the existing
-  `*...*` -> `<em>` rule would turn into italics. The spec calls for **light weight, not italic** —
-  so strip the asterisks inside `EffectType` and don't let the italic rule reach them.
-- Two payloads carry a trailing number — `{EffectType:| *SPECIAL ACTION* | 4}` on `Lark`
-  (`03VOI-01CHP-0068`) and `{EffectType:| *ACTION* | 4}` on `Pashan` (`06VER-02COM-0170`). That `4`
-  is a per-effect cost, separate from the card's own `Ether` column (Lark's is blank, Pashan's is 1).
-  Pass it through as part of the light-weight text; don't try to parse it out.
-- The 11 distinct `EffectType` payloads are: `*ABILITY*`, `*ACTION*`, `*ACTION* | 4`,
-  `*ATTACK ACTION*`, `*ATTACK EXERTION*`, `*ATTACK manoeuvre ACTION*`, `*FREE ACTION*`,
-  `*FREE ATTACK ACTION*`, `*FREE ATTACK REACTION*`, `*MANOEUVRE ACTION*`, `*SPECIAL ACTION* | 4`
-  (each prefixed with `| `).
-- **One casing artifact to fix in the sheet:** `Cinderhulk` (`01RHA-03FAM-0006`) reads
-  `{EffectType:| *ATTACK manoeuvre ACTION*}` — lowercase mid-label, where every other payload is
-  fully uppercase. It's a leftover from the `MANOEUVER` -> `manoeuvre` spelling correction. Cosmetic
-  only: it would render as "| ATTACK manoeuvre ACTION". Should be `*ATTACK MANOEUVRE ACTION*`.
-  Don't work around it in the renderer — fix the cell.
-- Lowercase `manoeuvre` in the `Effect N - Details` columns is **correct and intentional** — it's
-  prose (`When an enemy performs a *manoeuvre*...`), 18 occurrences. Only the all-caps label inside
-  `EffectType` is affected.
-- Handle these tokens **before** the catch-all strip, and keep the `escapeHtml()`-first ordering.
-- **This introduces Lato as a font dependency** (Google Fonts). It overlaps the typography work in
-  Chunk 7 — load it in Chunk 3 for these two weights, and let Chunk 7 extend the stack rather than
-  redo it. Always declare a real fallback.
+- **The renderer supplies the `|` separator.** It used to live inside the data; it doesn't any more.
+- Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
+- **`Effect Type` is a closed 10-value vocabulary**, all caps, verified across all 200 rows:
+  `ABILITY` (60), `ACTION` (15), `ATTACK ACTION` (4), `FREE ACTION` (8), `FREE ATTACK REACTION` (4),
+  `MANOEUVRE ACTION` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE ACTION` (1),
+  `FREE ATTACK ACTION` (1), `SPECIAL ACTION` (1). Chunk 0 should validate against this list — an
+  unexpected value means a data-entry slip, not a new category.
+- **`formatRulesText()` still needs its curly-token rules** — but only for `Effect Details` and
+  `Keywords`, which carry icon tokens like `{M3/Icons/Dice/SQUARE.png}` (46 cells). The existing
+  rules already convert those to `<strong>[SQUARE]</strong>` **before** the catch-all, so this path
+  works today. Don't remove it; just don't let it near the name/type columns, which need no parsing.
+- Lowercase `manoeuvre` in `Effect Details` is **correct prose** (`When an enemy performs a
+  *manoeuvre*...`) and must be left alone. Only the `Effect Type` labels are all-caps.
+- **Lato is a font dependency** (Google Fonts). It overlaps Chunk 7's typography work — load the two
+  weights in Chunk 3 and let Chunk 7 extend the stack rather than redo it. Declare a real fallback.
+
+Two things this revision also cleared, recorded so nobody hunts for them: the `Cinderhulk` lowercase
+casing artifact is **fixed** (`ATTACK MANOEUVRE ACTION`), and the trailing per-effect cost that used
+to ride inside two type payloads (`| 4` on `Lark` and `Pashan`) is **gone** — both cards' effects
+were rewritten.
 
 ### 3.5 Two TTS zones become one
 
@@ -349,10 +349,14 @@ independent — run it any time, including first if you'd rather see progress on
   dominion blocks contiguous; `Class` in the 5-value vocabulary; `Role` in
   `{COMPANION, SIGNATURE, ""}`; every `COMPANION`/`SIGNATURE` row has `Role Details`; **every
   `Role Details` resolves to a champion in the same dominion under the §3.1 normalised
-  comparison**; every non-companion/signature row has empty `Role Details`; every populated
-  `Effect N - Name` matches the strict `{EffectName:X} {EffectType:Y}` shape from §3.4; deck JSON
-  `ContainedObjects` count == CSV row count; `DeckIDs` length matches; every `CustomDeck` sheet
-  referenced exists.
+  comparison**; every non-companion/signature row has empty `Role Details`; `Effect Type N` is in
+  the closed 10-value vocabulary from §3.4; `Effect Name N` and `Effect Type N` are populated
+  together (neither alone); **no effect name/type cell contains `{` or `*`** — that would mean a
+  stale export with the old Dextrous markup; deck JSON `ContainedObjects` count == CSV row count;
+  `DeckIDs` length matches; every `CustomDeck` sheet referenced exists.
+- **Check the header row against the expected column list** (§2.2) and fail with a clear message if
+  it doesn't match. The schema has now moved twice; a validator that silently reads the wrong columns
+  is worse than one that refuses.
 - **Write the normalising name-match here, as a reusable function**, and port the same logic into
   `main.gs` in Chunk 2. Two implementations that disagree is the failure mode to avoid — if the
   validator passes but the web app drops a link, this is the first place to look.
@@ -451,17 +455,18 @@ from §3.1 resolve.
 
 **Goal:** the web tool renders the richer card data properly.
 
-- `formatRulesText()`: implement the §3.4 token spec — `{EffectName:X}` -> Lato 600,
-  `{EffectType:Y}` -> Lato 300, brackets gone, asterisks stripped inside `EffectType` so the italic
-  rule can't reach them, handled **before** the `\{.*?\}` catch-all. Keep the `escapeHtml()`-first
-  ordering — sheet text must stay inert (see `CLAUDE.md`).
+- Render the effect header per §3.4: `Effect Name N` in Lato 600, then a renderer-supplied `|`, then
+  `Effect Type N` in Lato 300. **No token parsing** — these columns are clean (D7). Pass
+  `Effect Details N` through `formatRulesText()` as before.
+- Leave `formatRulesText()`'s existing curly-token rules alone: `Effect Details` and `Keywords` still
+  carry `{M3/Icons/…}` tokens (46 cells), and the existing rules already convert them ahead of the
+  `\{.*?\}` catch-all. Keep the `escapeHtml()`-first ordering — sheet text must stay inert (see
+  `CLAUDE.md`).
 - Load Lato 300 and 600 from Google Fonts with a real fallback stack. Chunk 7 extends this; don't
   let it redo it.
-- Verify against `{EffectName:SMOLDER} {EffectType:| *FREE ACTION*}` rendering as
-  **SMOLDER** | FREE ACTION, semi-bold then light.
 - Render effect 1 and effect 2 as separate blocks in both the browser card view and the print card.
   Only 7 cards have a second effect, so the layout must collapse cleanly when it's absent.
-- Surface `Keywords` (80/200 cards) and, if there's room, `Flavour Text` (60/200).
+- Surface `Keywords` (80/200 cards) and, if there's room, `Flavour` (60/200).
 - Re-check the print card layout: it's pinned to poker size (63.5mm x 88.9mm) in a 3x3 A4 grid, so
   two effects plus keywords is a real space constraint. Shrinking type is fine; breaking the 3x3
   page grid is not.
@@ -470,12 +475,14 @@ from §3.1 resolve.
   the recruitable basics list. Confirm rather than change.
 
 **Test:** manual walkthrough of all 6 dominions; specifically open `Caldrack` (`01RHA-03FAM-0012`),
-which has both effects populated, and `Lark` (`03VOI-01CHP-0068`), whose effect type carries the
-trailing `| 4` cost. Confirm no stray `{`, `}` or `*` characters appear anywhere. Then print-preview
-a full cast and check the 3x3 A4 pages still break correctly and nothing clips.
+which has both effects populated — expect `CAUSTIC ANTLERS | ABILITY` and
+`VITRIOLIC QUENCH | FREE ACTION`. Check a card whose details carry an icon token, e.g. `Fissureback`
+(`01RHA-03FAM-0014`), renders `[SQUARE]` rather than a raw `{M3/Icons/…}` string. Confirm no stray
+`{`, `}` or `*` characters appear anywhere. Then print-preview a full cast and check the 3x3 A4
+pages still break correctly and nothing clips.
 
-**Done when:** effect names render in semi-bold with their type in light, no Dextrous markup leaks
-into the output, two-effect cards look right, and print preview is unbroken.
+**Done when:** effect names render in semi-bold with their type in light, icon tokens still resolve,
+two-effect cards look right, and print preview is unbroken.
 
 ---
 
@@ -649,14 +656,15 @@ Rules that keep this working:
 
 ## 6. Actions for you (not code)
 
-1. ~~**Re-export the `Cast` CSV**~~ — **done 2026-09-14.** The `Ignatious` -> `Ignatius` fix and the
-   `MANOEUVER` -> `MANOEUVRE` spelling correction are both in, and the committed copy on this branch
-   is current. The other 5 name variants are intentional and need no change.
-2. **Fix the `Cinderhulk` effect-type casing** (`01RHA-03FAM-0006`), per §3.4 — `*ATTACK manoeuvre
-   ACTION*` should be `*ATTACK MANOEUVRE ACTION*`. Cosmetic, needed before Chunk 3 renders it.
-   Re-export afterwards.
+1. ~~**Re-export the `Cast` CSV**~~ — **done 2026-09-14**, twice. The `Ignatious` -> `Ignatius` fix,
+   the `MANOEUVER` -> `MANOEUVRE` spelling correction, and the D7 effect-column re-split are all in.
+   The copy committed on this branch matches your working copy. The 5 `Role Details` name variants
+   are intentional and need no change.
+2. ~~**Fix the `Cinderhulk` effect-type casing**~~ — **done**, arrived with the D7 re-export as
+   `ATTACK MANOEUVRE ACTION`.
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
-   Explorer instructions are in §3.6. Needed before Chunk 6.
+   Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
+   prerequisite, and it only blocks Chunks 6–7.**
 4. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
 5. *(Optional)* **Check whether commas in the champion `Name` column cause trouble in Dextrous**
    (§3.1). `Valex, the Final Plume` and `Thælass Elshara` still carry the characters that
