@@ -72,7 +72,9 @@ Planning session, so this is data verification rather than a manual test. Agains
 
 ## Next session starts here
 
-- Read: `UPGRADE_PLAN.md` (all of §1–§3, then §4 Chunk 0), then this file.
+- **Just run `/resume`.** It reads the plan and this file, verifies the repo state, checks the §6
+  prerequisites, and starts Chunk 0. End the session with `/handover`.
+- If reading manually instead: `UPGRADE_PLAN.md` (all of §1–§3, then §4 Chunk 0), then this file.
 - First action: write `dextrous/validate_cast.py` per Chunk 0, including the normalising name-match
   as a reusable function — Chunk 2 ports the same logic into `main.gs`, and the two must agree.
 - Expected result: passes clean on the current data, all 24 links resolving. To prove the link check

@@ -589,7 +589,15 @@ are still light with coloured borders.
 Every chunk session ends by writing `handover/CHUNK_<n>_HANDOVER.md`. The next session reads
 `UPGRADE_PLAN.md` (this file) plus the latest handover, and nothing else, before starting.
 
-Template:
+**Two skills automate this** (project-scoped, in `.claude/skills/`, versioned with the repo so every
+fresh session picks them up):
+
+| Command | What it does |
+|---|---|
+| `/resume` | Reads this plan and the latest handover, **verifies the repo actually matches what they claim**, checks whether your §6 prerequisites are met, orients you, then starts the next chunk. Takes an optional chunk number: `/resume 3`. |
+| `/handover` | Gathers the git facts rather than recalling them, writes `handover/CHUNK_<n>_HANDOVER.md` to the template, commits it, then gives you the manual test steps. Amends the note with the result once you report back. |
+
+A session should therefore start with `/resume` and end with `/handover`. Template:
 
 ```markdown
 # Chunk <n> handover — <title>
