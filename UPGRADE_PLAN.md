@@ -1,8 +1,8 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator reports one
-open data question, `Lark`'s effect type (§6 item 1b); everything else is clean.
+**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
+clean** on the current data.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -37,7 +37,7 @@ them in a later session.
 | D4 | Effect headers render as **Lato semi-bold name, light type**, separated by `\|`. No Dextrous markup may reach the web output. *(Superseded in mechanism by D7 — the markup is gone from the data, so this is now a styling spec rather than a parsing one.)* | §3.4, Chunk 3 |
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
-| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]` — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
+| D9 | **Effect types are validated as a grammar, not a list.** Three forms: `ABILITY`; `SPECIAL ACTION`; or `[FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]` — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 3 |
 | D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 3 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 3 |
 
@@ -265,6 +265,7 @@ Details that matter:
   ```
   ABILITY
   [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
+  SPECIAL ACTION
   ```
 
   Brackets mark optional parts, slashes either/or, exactly one space between parts.
@@ -272,7 +273,10 @@ Details that matter:
   hasn't been used yet — `FREE MANOEUVRE`, say — passes without a code change. Observed values as
   of the D8 re-export: `ABILITY` (54), `ACTION` (15), `FREE ACTION` (8), `ATTACK` (4),
   `FREE ATTACK REACTION` (4), `MANOEUVRE` (2), `ATTACK EXERTION` (1), `ATTACK MANOEUVRE` (1),
-  `FREE ATTACK` (1), plus one `SPECIAL ACTION` the grammar rejects — see §6 item 1b.
+  `FREE ATTACK` (1), `SPECIAL ACTION` (1).
+- **`SPECIAL ACTION` is a whole form, not a `SPECIAL` prefix.** It stands alone like `ABILITY`, so
+  `SPECIAL ATTACK` and `FREE SPECIAL ACTION` are *not* valid. If they ever should be, move
+  `SPECIAL` into `EFFECT_PREFIXES` in the validator — a one-word change.
 - The validator names *which part* is wrong — an unknown core, a prefix with no core, irregular
   whitespace, lower case, or one of the four pre-D8 spellings — rather than just rejecting the cell.
 - **D8 dropped the redundant trailing `ACTION`.** An attack is an action unless it is a reaction, so
@@ -394,9 +398,9 @@ are each reported, and every corruption exits 1. A naive exact match fails exact
 §3.1; under normalisation all 24 links resolve.
 
 **Effect types are checked against the D9 grammar, not a closed list**, so vocabulary tweaks no
-longer require a validator change. The 4 pairing failures it originally found are fixed (§6 item
-1a). One outstanding failure: `Lark`'s `SPECIAL ACTION`, which the grammar rejects — §6 item 1b.
-Everything else passes.
+longer require a validator change. **Passes clean, exit 0.** The 4 pairing failures it originally
+found are fixed (§6 item 1a), and `SPECIAL ACTION` is in the grammar as a standalone form (§6 item
+1b).
 
 **Done when:** it passes clean on the current data — all 24 companion/signature links resolving,
 including the 5 transliterated ones. To confirm the link check actually has teeth rather than
@@ -721,13 +725,9 @@ unaffected.
    passes clean. The roster itself is unchanged — same 200 IDs and names, verified against the
    previously committed CSV.
 
-1b. **Decide what `Lark`'s effect type should be.** `03VOI-01CHP-0068` (sheet row 69), effect
-   `TRICK SHOT`, is typed `SPECIAL ACTION` — the only value in the sheet that the D9 grammar
-   rejects. `SPECIAL` is not a prefix in the grammar, and `SPECIAL ACTION` is also the name of a
-   *class*, so this may be a column mix-up rather than a deliberate type. If it should be `ACTION`
-   or `FREE ACTION`, fix it in the sheet and re-export. If `SPECIAL` is a real prefix, say so and
-   it goes into `EFFECT_PREFIXES` in `validate_cast.py` — a one-line change. **Until then
-   `validate_cast.py` exits 1 with exactly this one failure**, which does not block Chunk 1.
+1b. ~~**Decide what `Lark`'s effect type should be**~~ — **settled 2026-09-14**. `SPECIAL ACTION`
+   is a legitimate third form, not a column mix-up. Added to the grammar as a standalone alongside
+   `ABILITY`; the sheet needs no change. Lark (`03VOI-01CHP-0068`) is its only user.
 
 3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
    Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding

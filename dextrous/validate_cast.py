@@ -77,9 +77,14 @@ SEGMENT_BY_CLASS = {
 #
 #     ABILITY
 #     [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
+#     SPECIAL ACTION
 #
 # Square brackets are optional, slashes are either/or. Everything is uppercase.
-EFFECT_STANDALONE = ("ABILITY",)
+#
+# `SPECIAL ACTION` is a whole form in its own right, like `ABILITY` -- not a `SPECIAL`
+# prefix. So `SPECIAL ATTACK` and `FREE SPECIAL ACTION` are not valid. If they should
+# be, move "SPECIAL" into EFFECT_PREFIXES instead.
+EFFECT_STANDALONE = ("ABILITY", "SPECIAL ACTION")
 EFFECT_PREFIXES = ("FREE",)
 EFFECT_CORES = ("ACTION", "ATTACK", "MANOEUVRE", "ATTACK MANOEUVRE")
 EFFECT_SUFFIXES = ("REACTION", "EXERTION")
@@ -116,7 +121,8 @@ SUPERSEDED_EFFECT_TYPES = {
 }
 
 EFFECT_GRAMMAR_SUMMARY = (
-    "ABILITY, or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]"
+    "ABILITY; SPECIAL ACTION; or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE "
+    "[REACTION/EXERTION]"
 )
 
 
@@ -162,8 +168,9 @@ def effect_type_error(value: str) -> str | None:
             f"must be attached to one of {list(EFFECT_CORES)}"
         )
     return (
-        f"{value!r} is not a valid effect type: {remainder!r} is not one of "
-        f"{list(EFFECT_CORES)} (grammar: {EFFECT_GRAMMAR_SUMMARY})"
+        f"{value!r} is not a valid effect type: {remainder!r} is neither one of "
+        f"{list(EFFECT_CORES)} nor a standalone {list(EFFECT_STANDALONE)} "
+        f"(grammar: {EFFECT_GRAMMAR_SUMMARY})"
     )
 
 
