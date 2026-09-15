@@ -437,6 +437,7 @@ function loadCastCoroutine()
             yieldSeconds(0.2)
         else
             isCloning = false
+            print("Warning: Champion model not found in bag for ID: " .. champId .. " (has the bag been re-run through Model_ID_Injector since the ID format changed?)")
         end
     end
 
@@ -489,6 +490,7 @@ function loadCastCoroutine()
                     yieldSeconds(0.2)
                 else
                     isCloning = false
+                    print("Warning: Unit model not found in bag for ID: " .. unitId .. " (has the bag been re-run through Model_ID_Injector since the ID format changed?)")
                 end
             end
         end
@@ -523,6 +525,7 @@ function loadCastCoroutine()
                 yieldSeconds(0.2)
             else
                 isCloning = false
+                print("Warning: Minion model not found in bag for ID: " .. minionId .. " (has the bag been re-run through Model_ID_Injector since the ID format changed?)")
             end
         end
     end
