@@ -66,6 +66,10 @@ PAIRS = [
     ("--field-border-colour", "--panel-bg",   UI, "select / textarea outline on a panel"),
     ("--warning-border",      "--warning-bg", UI, ".warning-box outline"),
     ("--accent-colour",       "--panel-bg",   UI, "selected card border and glow"),
+    # WCAG formally exempts logotypes from contrast, but the header logo is the only
+    # thing naming the product, so it is asserted anyway: a later theme change must not
+    # be able to sink the wordmark into the panel.
+    ("--logo-colour",         "--panel-bg",   UI, "header logo (.brand-logo) on a panel"),
     ("--panel-bg",            "--bg-colour",  SURFACE, ".container against the ground"),
 
     # --- ink: the printed sheet, which must stay legible on paper ---
