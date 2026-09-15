@@ -27,22 +27,30 @@ naming the CSS tokens.
 - `#E4A557` (GOLD STONE) is the obvious accent — it is the only high-chroma, high-luminance colour
   in the set and reads well on the off-black.
 
-## Open question for Harvey — dominion colours
+## Dominion colours — ANSWERED 2026-09-15
 
-**The guide gives four chromatic hues (wine, gold, green, teal) but the game has six dominions**
-(`01RHA` Rhavlika, `02IRO` Iro-Si-Khar, `03VOI` Voisira, `04XAL`, `05AHE` Ahèserec, `06VER`). The
-current `FACTION_COLORS` in the frontend has six entries (`#c0392b`, `#2980b9`, `#b7950b`, `#7d3c98`,
-`#27ae60`, `#138d75`).
+The guide gives four chromatic hues but the game has six dominions, so the mapping was never
+derivable from it. Harvey supplied all six directly, in `Dominion Colours.txt`:
 
-So the guide does **not** specify a dominion mapping, and Chunk 6's "re-map `FACTION_COLORS` to the
-brand's dominion colours *if the guide specifies them*" resolves to: it doesn't. Two ways forward,
-and this is Harvey's call:
+| Dominion | Hex | On white paper |
+|---|---|---|
+| Rhavlika | `#DD2335` | 4.81:1 |
+| Iro-Si-Khar | `#28A9D9` | 2.70:1 |
+| Voisira | `#F7B828` | 1.77:1 |
+| Xalakith | `#EDE9DC` | 1.21:1 |
+| Ahèserec | `#29A049` | 3.38:1 |
+| Veritian | `#464C68` | 8.42:1 |
 
-1. **Keep six distinct hues**, deriving the two extras by extending the brand's own hue logic. Keeps
-   dominions visually separable, which matters — these colours are also the low-ink print borders.
-2. **Use the four brand hues** and distinguish the remaining two dominions some other way.
+**These were chosen to sit on the off-black ground, but in the web tool they only ever appear as ink
+on white card stock** — `FACTION_COLORS` is referenced in exactly one place, `generatePrintCard`.
+Three of them do not survive that: the print grid butts cards together with no gap, so a card's
+border is the line you cut along, and Xalakith at 1.21:1 is a white line on white card.
 
-Do not guess this: the colours carry meaning in play.
+So `FACTION_PRINT_OVERRIDES` in `CastRecruiter.html` darkens exactly those three — `#24A0CE`,
+`#C48A07`, `#A69356` — hue and saturation preserved, to clear 3:1. The other three print as
+supplied. Harvey chose this over using them verbatim or giving every card a neutral outline.
+
+`dextrous/check_theme_contrast.py` asserts all six on paper, so this cannot regress silently.
 
 ## Fonts (for Chunk 7, not Chunk 6)
 

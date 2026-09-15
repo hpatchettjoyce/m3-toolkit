@@ -847,11 +847,45 @@ are still light with coloured borders.
 
 **Done when:** the app reads as branded dark, and print preview is unchanged from before the chunk.
 
+**DONE 2026-09-15** — in three commits, deliberately separate:
+
+1. `c5240d3` tokenised all 62 hardcoded colours with no visual change. The tokens split into
+   **screen chrome** and **`--ink-*`** (the printed sheet). That split is the load-bearing part:
+   the `.print-card*` rules live *outside* `@media print` because they also render the on-screen
+   print overlay, so scoping the dark theme to the `@media print` block alone would have leaked
+   off-black onto the printed cards. A separate ink family makes that structurally impossible.
+2. `dd73bfa` applied the off-black ground. Two things a token swap could not express: form controls
+   needed an explicit `color` (their background is now near-black and an undeclared `select` keeps
+   the UA's black text), and `--field-border-colour` had to split out of `--border-colour` — on
+   white a faint border serves both dividers and inputs, but on dark the field and the ground are
+   the same colour so the outline is the only cue a control is there.
+3. `f5dfe64` re-mapped `FACTION_COLORS`. See below.
+
+**`dextrous/check_theme_contrast.py`** is new and re-runnable: it reads the tokens and both dominion
+maps out of `CastRecruiter.html` and asserts 32 colour pairs plus all six dominions on paper, each
+labelled with the rule that renders it. Run it after any colour edit.
+
+Two findings worth keeping:
+
+- **`--success-colour` and `--warning-colour` are not only fills.** They are also the ether and
+  specials tracker text (`updateTrackers()`), so each had to clear 4.5:1 both as a fill behind
+  off-black text and as text on the panel. That constraint is what picked the values.
+- **`FACTION_COLORS` is referenced in exactly one place, `generatePrintCard`.** So the dominion
+  colours only ever appear as ink on white card stock in this tool — they never touch the dark UI.
+
 ---
 
 ### Chunk 7 — Branding pass 2: logos and typography
 
-**Prerequisite:** logo PNGs in `assets/branding/`.
+**Prerequisite: PARTLY SATISFIED (2026-09-15).** `assets/branding/Horizontal_Filled_Light.svg` has
+landed — mark and wordmark as one image, a single `fill: #eea145` on one CSS class `.cls-1`, so it
+recolours trivially once inlined. **Inline it rather than hosting it:** GAS serves one HTML file
+through `HtmlService` with no static asset hosting, and switching `.cls-1` to `currentColor` lets
+one file serve both the dark chrome and the light print styles.
+
+**Still missing: a PNG.** The favicon and TTS both need raster — TTS takes raster textures only.
+Note the guide's own gold is `#eea145` while the palette's GOLD STONE is `#E4A557`; the SVG is the
+supplied asset, so it wins, but do not "correct" one to the other without asking.
 
 **Goal:** identity, not just colour.
 
@@ -972,9 +1006,10 @@ unaffected.
 1b. ~~**Restore `Lark`'s ether cost**~~ — **done 2026-09-14**. `03VOI-01CHP-0068` (sheet row 69),
    `TRICK SHOT`, now reads `SPECIAL ACTION | 4`. One cell changed; the validator passes clean.
 
-3. **Copy the branding assets** into `assets/branding/` — the PDF and the logo PNGs. Path and
-   Explorer instructions are in §3.6. Needed before Chunk 6. **This is now the only outstanding
-   prerequisite, and it only blocks Chunks 6–7.**
+3. ~~**Copy the branding assets**~~ — **mostly done.** The PDF (2026-09-15), the six dominion
+   colours (`Dominion Colours.txt`, 2026-09-15) and the horizontal logo SVG are all in
+   `assets/branding/`. **Outstanding: a logo PNG**, for the favicon and for TTS, which takes raster
+   only. Path and Explorer instructions are in §3.6. Blocks part of Chunk 7 only.
 4. **Plan the TTS table change** for Chunk 4: one Cast deck, one scripting zone over it.
 5. *(Optional)* **Check whether commas in the champion `Name` column cause trouble in Dextrous**
    (§3.1). `Valex, the Final Plume` and `Thælass Elshara` still carry the characters that
