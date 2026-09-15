@@ -503,6 +503,13 @@ silently shifted deck.
   an injection is a one-line diff and so is the next re-export. Writing `indent=2` would have made
   every round trip fight over the whole file.
 
+**Re-run the compiler after every Dextrous re-export — the art URLs are not stable.** The
+2026-09-15 re-export (corrected card back, one typo re-rendered) kept all 10 face/back storage paths
+identical but rotated **all 10 Firebase `token=` values**. A re-render therefore invalidates every
+URL already in `CardImages.gs` while leaving the filenames looking unchanged, so a stale map points
+at dead links and the art simply fails to load. Regenerating also re-injects the deck, which a fresh
+export always arrives without.
+
 ---
 
 ### Chunk 2 — Rewrite `getCardDatabase()` in `main.gs`
