@@ -5,17 +5,16 @@
      INSTRUCTIONS:
      1. Right-click your scripting token in TTS and select Scripting > Scripting Editor.
      2. Paste this entire LUA code into the editor.
-     3. Create two Scripting Trigger Zones (Tools > Scripting Trigger Zone) on your table:
-        - Place Zone 1 where the Characters & Talismans deck is kept.
-        - Place Zone 2 where the Special Actions deck is kept.
-     4. Paste the GUIDs of these trigger zones below in CHARACTERS_ZONE_GUID and SPECIALS_ZONE_GUID.
+     3. Create one Scripting Trigger Zone (Tools > Scripting Trigger Zone) on your table and
+        place it where the single Cast deck is kept. That one deck now holds all 200 cards:
+        champions, companions, familiars, minions, talismans, signatures and special actions.
+     4. Paste the GUID of that trigger zone below in CAST_ZONE_GUID.
      5. Click Save & Play!
 --]]
 
 -- =============== CONFIGURATION GUIDs (REQUIRED) ===============
 -- Place scripting zones over your decks on the table and enter their GUIDs below.
-CHARACTERS_ZONE_GUID = "83f62b" -- Zone containing the Characters & Talismans deck
-SPECIALS_ZONE_GUID   = "b609e4" -- Zone containing the Special Actions deck
+CAST_ZONE_GUID       = "83f62b" -- Zone containing the single Cast deck (all 200 cards)
 MODELS_ZONE_GUID     = "fe2114" -- Zone containing the 3D Models Bag (Task 3)
 
 -- =============== MAP DEPLOYMENT CONFIGURATION (ONBOARDING) ===============
@@ -60,7 +59,7 @@ ONBOARDING_SCENARIOS = {
     ["Flint"] = { -- Rhavlika Dominion
         [1] = {
             championId = "",
-            unitIdsRecruited = { ["01RHA-02FAM-002"] = 1, ["01RHA-02FAM-003"] = 1 },
+            unitIdsRecruited = { ["01RHA-03FAM-0005"] = 1, ["01RHA-03FAM-0006"] = 1 },
             talismanIdsEquipped = {},
             specialIds = {},
             dominion = "Rhavlika",
@@ -68,25 +67,25 @@ ONBOARDING_SCENARIOS = {
         },
         [2] = {
             championId = "",
-            unitIdsRecruited = { ["01RHA-02FAM-002"] = 1, ["01RHA-02FAM-003"] = 1 },
+            unitIdsRecruited = { ["01RHA-03FAM-0005"] = 1, ["01RHA-03FAM-0006"] = 1 },
             talismanIdsEquipped = {},
-            specialIds = { "01RHA-05SPA-006", "01RHA-05SPA-038" },
+            specialIds = { "01RHA-07SPA-0023", "01RHA-07SPA-0025" },
             dominion = "Rhavlika",
             champion = "Flint Dross"
         },
         [3] = {
-            championId = "01RHA-01CMP-001",
-            unitIdsRecruited = { ["01RHA-02FAM-002"] = 1, ["01RHA-02FAM-003"] = 1, ["01RHA-02FAM-004"] = 2 },
+            championId = "01RHA-01CHP-0001",
+            unitIdsRecruited = { ["01RHA-03FAM-0005"] = 1, ["01RHA-03FAM-0006"] = 1, ["01RHA-03FAM-0007"] = 2 },
             talismanIdsEquipped = {},
-            specialIds = { "01RHA-05SPA-006", "01RHA-05SPA-038", "01RHA-05SPA-005", "01RHA-05SPA-063" },
+            specialIds = { "01RHA-07SPA-0023", "01RHA-07SPA-0025", "01RHA-07SPA-0022", "01RHA-07SPA-0030" },
             dominion = "Rhavlika",
             champion = "Flint Dross"
         },
         [4] = {
-            championId = "01RHA-01CMP-001",
-            unitIdsRecruited = { ["01RHA-02FAM-002"] = 2, ["01RHA-02FAM-003"] = 3, ["01RHA-02FAM-004"] = 3 },
+            championId = "01RHA-01CHP-0001",
+            unitIdsRecruited = { ["01RHA-03FAM-0005"] = 2, ["01RHA-03FAM-0006"] = 3, ["01RHA-03FAM-0007"] = 3 },
             talismanIdsEquipped = {},
-            specialIds = { "01RHA-05SPA-006", "01RHA-05SPA-038", "01RHA-05SPA-005", "01RHA-05SPA-063", "01RHA-05SPA-001", "01RHA-05SPA-003" },
+            specialIds = { "01RHA-07SPA-0023", "01RHA-07SPA-0025", "01RHA-07SPA-0022", "01RHA-07SPA-0030", "01RHA-07SPA-0019", "01RHA-07SPA-0021" },
             dominion = "Rhavlika",
             champion = "Flint Dross"
         }
@@ -94,7 +93,7 @@ ONBOARDING_SCENARIOS = {
     ["Ripple"] = { -- Iro-Si-Khar Dominion
         [1] = {
             championId = "",
-            unitIdsRecruited = { ["02IRO-02FAM-006"] = 1, ["02IRO-02FAM-007"] = 1 },
+            unitIdsRecruited = { ["02IRO-03FAM-0038"] = 1, ["02IRO-03FAM-0039"] = 1 },
             talismanIdsEquipped = {},
             specialIds = {},
             dominion = "Iro-Si-Khar",
@@ -102,25 +101,25 @@ ONBOARDING_SCENARIOS = {
         },
         [2] = {
             championId = "",
-            unitIdsRecruited = { ["02IRO-02FAM-006"] = 1, ["02IRO-02FAM-007"] = 1 },
+            unitIdsRecruited = { ["02IRO-03FAM-0038"] = 1, ["02IRO-03FAM-0039"] = 1 },
             talismanIdsEquipped = {},
-            specialIds = { "02IRO-05SPA-010", "02IRO-05SPA-041" },
+            specialIds = { "02IRO-07SPA-0055", "02IRO-07SPA-0058" },
             dominion = "Iro-Si-Khar",
             champion = "Ripple Elshara"
         },
         [3] = {
-            championId = "02IRO-01CMP-005",
-            unitIdsRecruited = { ["02IRO-02FAM-006"] = 1, ["02IRO-02FAM-007"] = 1, ["02IRO-02FAM-008"] = 2 },
+            championId = "02IRO-01CHP-0034",
+            unitIdsRecruited = { ["02IRO-03FAM-0038"] = 1, ["02IRO-03FAM-0039"] = 1, ["02IRO-03FAM-0040"] = 2 },
             talismanIdsEquipped = {},
-            specialIds = { "02IRO-05SPA-010", "02IRO-05SPA-041", "02IRO-05SPA-012", "02IRO-05SPA-067"},
+            specialIds = { "02IRO-07SPA-0055", "02IRO-07SPA-0058", "02IRO-07SPA-0057", "02IRO-07SPA-0064"},
             dominion = "Iro-Si-Khar",
             champion = "Ripple Elshara"
         },
         [4] = {
-            championId = "02IRO-01CMP-005",
-            unitIdsRecruited = { ["02IRO-02FAM-006"] = 3, ["02IRO-02FAM-007"] = 3, ["02IRO-02FAM-008"] = 3 },
+            championId = "02IRO-01CHP-0034",
+            unitIdsRecruited = { ["02IRO-03FAM-0038"] = 3, ["02IRO-03FAM-0039"] = 3, ["02IRO-03FAM-0040"] = 3 },
             talismanIdsEquipped = {},
-            specialIds = { "02IRO-05SPA-010", "02IRO-05SPA-041", "02IRO-05SPA-012", "02IRO-05SPA-067", "02IRO-05SPA-011", "02IRO-05SPA-065" },
+            specialIds = { "02IRO-07SPA-0055", "02IRO-07SPA-0058", "02IRO-07SPA-0057", "02IRO-07SPA-0064", "02IRO-07SPA-0056", "02IRO-07SPA-0062" },
             dominion = "Iro-Si-Khar",
             champion = "Ripple Elshara"
         }
@@ -128,7 +127,7 @@ ONBOARDING_SCENARIOS = {
     ["Lark"] = { -- Voisira Dominion
         [1] = {
             championId = "",
-            unitIdsRecruited = { ["03VOI-02FAM-012"] = 1, ["03VOI-02FAM-050"] = 1 },
+            unitIdsRecruited = { ["03VOI-03FAM-0073"] = 1, ["03VOI-03FAM-0078"] = 1 },
             talismanIdsEquipped = {},
             specialIds = {},
             dominion = "Voisira",
@@ -136,25 +135,25 @@ ONBOARDING_SCENARIOS = {
         },
         [2] = {
             championId = "",
-            unitIdsRecruited = { ["03VOI-02FAM-012"] = 1, ["03VOI-02FAM-050"] = 1 },
+            unitIdsRecruited = { ["03VOI-03FAM-0073"] = 1, ["03VOI-03FAM-0078"] = 1 },
             talismanIdsEquipped = {},
-            specialIds = { "03VOI-05SPA-048", "03VOI-05SPA-017"  },
+            specialIds = { "03VOI-07SPA-0095", "03VOI-07SPA-0090"  },
             dominion = "Voisira",
             champion = "Lark"
         },
         [3] = {
-            championId = "03VOI-01CMP-010",
-            unitIdsRecruited = { ["03VOI-02FAM-011"] = 1, ["03VOI-02FAM-012"] = 2, ["03VOI-02FAM-050"] = 1 },
+            championId = "03VOI-01CHP-0068",
+            unitIdsRecruited = { ["03VOI-03FAM-0072"] = 1, ["03VOI-03FAM-0073"] = 2, ["03VOI-03FAM-0078"] = 1 },
             talismanIdsEquipped = {},
-            specialIds = { "03VOI-05SPA-048", "03VOI-05SPA-017", "03VOI-05SPA-014", "03VOI-05SPA-018"  },
+            specialIds = { "03VOI-07SPA-0095", "03VOI-07SPA-0090", "03VOI-07SPA-0087", "03VOI-07SPA-0091"  },
             dominion = "Voisira",
             champion = "Lark"
         },
         [4] = {
-            championId = "03VOI-01CMP-010",
-            unitIdsRecruited = { ["03VOI-02FAM-011"] = 3, ["03VOI-02FAM-012"] = 3, ["03VOI-02FAM-050"] = 3 },
+            championId = "03VOI-01CHP-0068",
+            unitIdsRecruited = { ["03VOI-03FAM-0072"] = 3, ["03VOI-03FAM-0073"] = 3, ["03VOI-03FAM-0078"] = 3 },
             talismanIdsEquipped = {},
-            specialIds = { "03VOI-05SPA-048", "03VOI-05SPA-017", "03VOI-05SPA-014", "03VOI-05SPA-018", "03VOI-05SPA-013", "03VOI-05SPA-016"  },
+            specialIds = { "03VOI-07SPA-0095", "03VOI-07SPA-0090", "03VOI-07SPA-0087", "03VOI-07SPA-0091", "03VOI-07SPA-0086", "03VOI-07SPA-0089"  },
             dominion = "Voisira",
             champion = "Lark"
         }
@@ -366,14 +365,9 @@ function loadCastCoroutine()
     broadcastToAll("Loading Cast for Player " .. playerNum .. " (" .. (castData.dominion or "Unknown") .. " - " .. (castData.champion or "Unknown") .. ")...", {0.1, 0.8, 0.1})
     
     -- Initial verification: Verify decks are strictly present in trigger zones before loading
-    local initialCharDeck, initialSpecDeck = findDecks()
-    if not initialCharDeck then
-        broadcastToColor("Error: Could not find any Deck/Card in the Characters Trigger Zone. Check your CHARACTERS_ZONE_GUID.", clickerColor, {1,0,0})
-        isLoadingCast = false
-        return 1
-    end
-    if not initialSpecDeck then
-        broadcastToColor("Error: Could not find any Deck/Card in the Specials Trigger Zone. Check your SPECIALS_ZONE_GUID.", clickerColor, {1,0,0})
+    local initialCastDeck = findCastDeck()
+    if not initialCastDeck then
+        broadcastToColor("Error: Could not find any Deck/Card in the Cast Trigger Zone. Check your CAST_ZONE_GUID.", clickerColor, {1,0,0})
         isLoadingCast = false
         return 1
     end
@@ -386,15 +380,15 @@ function loadCastCoroutine()
     local champId = castData.championId
     if (champName or champId) and not isReducedScenario then
         -- Fresh lookup to ensure valid Unity object references
-        local charDeck, specDeck = findDecks()
-        if not charDeck then
-            broadcastToColor("Error: Characters deck vanished or was moved during loading.", clickerColor, {1,0,0})
+        local castDeck = findCastDeck()
+        if not castDeck then
+            broadcastToColor("Error: Cast deck vanished or was moved during loading.", clickerColor, {1,0,0})
             isLoadingCast = false
             return 1
         end
 
         isCloning = true
-        local success = cloneCardFromDeck(charDeck, champName, champId, spawnPos, {0, 180, 180}, true, config.color)
+        local success = cloneCardFromDeck(castDeck, champName, champId, spawnPos, {0, 180, 180}, config.color)
         if success then
             -- Wait for the asynchronous clone callback to finish returning the card before proceeding!
             while isCloning do
@@ -450,15 +444,15 @@ function loadCastCoroutine()
     if castData.unitIdsRecruited and next(castData.unitIdsRecruited) then
         for unitId, qty in pairs(castData.unitIdsRecruited) do
             unitIndex = unitIndex + 1
-            local charDeck, specDeck = findDecks()
-            if not charDeck then
-                print("Error: Characters deck vanished during units loop.")
+            local castDeck = findCastDeck()
+            if not castDeck then
+                print("Error: Cast deck vanished during units loop.")
                 break
             end
 
             -- Clone Card to Hand
             isCloning = true
-            local success = cloneCardFromDeck(charDeck, "", unitId, spawnPos, {0, 180, 180}, true, config.color)
+            local success = cloneCardFromDeck(castDeck, "", unitId, spawnPos, {0, 180, 180}, config.color)
             if success then
                 while isCloning do
                     coroutine.yield(0)
@@ -504,7 +498,7 @@ function loadCastCoroutine()
     if (castData.dominion == "Iro-Si-Khar" or castData.dominion == "Ahèserec") and not isReducedScenario then
         if modelsBag then
             unitIndex = unitIndex + 1
-            local minionId = (castData.dominion == "Iro-Si-Khar") and "02IRO-03MIN-009" or "05AHE-03MIN-022"
+            local minionId = (castData.dominion == "Iro-Si-Khar") and "02IRO-04MIN-0048" or "05AHE-04MIN-0148"
             local spawnTarget = getSpawnPositionForModels(config)
             
             local xStart = (config.color == "Red") and -23.5 or 23.5
@@ -536,14 +530,14 @@ function loadCastCoroutine()
     -- 4. Extract and deal Talismans to Hand (Task 4)
     if castData.talismanIdsEquipped and next(castData.talismanIdsEquipped) then
         for talId, attachment in pairs(castData.talismanIdsEquipped) do
-            local charDeck, specDeck = findDecks()
-            if not charDeck then
-                print("Error: Characters deck vanished during talismans loop.")
+            local castDeck = findCastDeck()
+            if not castDeck then
+                print("Error: Cast deck vanished during talismans loop.")
                 break
             end
 
             isCloning = true
-            local success = cloneCardFromDeck(charDeck, "", talId, spawnPos, {0, 180, 180}, true, config.color)
+            local success = cloneCardFromDeck(castDeck, "", talId, spawnPos, {0, 180, 180}, config.color)
             if success then
                 while isCloning do
                     coroutine.yield(0)
@@ -559,11 +553,11 @@ function loadCastCoroutine()
     -- 4.5 Auto-Summon Minions (Task 1)
     if (castData.dominion == "Iro-Si-Khar" or castData.dominion == "Ahèserec") and not isReducedScenario then
         local minionName = (castData.dominion == "Iro-Si-Khar") and "Driplet" or "Huskling"
-        local minionId = (castData.dominion == "Iro-Si-Khar") and "02IRO-03MIN-009" or "05AHE-03MIN-022"
-        local charDeck, specDeck = findDecks()
-        if charDeck then
+        local minionId = (castData.dominion == "Iro-Si-Khar") and "02IRO-04MIN-0048" or "05AHE-04MIN-0148"
+        local castDeck = findCastDeck()
+        if castDeck then
             isCloning = true
-            local success = cloneCardFromDeck(charDeck, minionName, minionId, spawnPos, {0, 180, 180}, true, config.color)
+            local success = cloneCardFromDeck(castDeck, minionName, minionId, spawnPos, {0, 180, 180}, config.color)
             if success then
                 while isCloning do
                     coroutine.yield(0)
@@ -579,14 +573,14 @@ function loadCastCoroutine()
     -- 5. Extract and deal Special Action cards to player's Hand (Task 4)
     if castData.specialIds and #castData.specialIds > 0 then
         for i, specId in ipairs(castData.specialIds) do
-            local charDeck, specDeck = findDecks()
-            if not specDeck then
-                print("Error: Specials deck vanished during specials loop.")
+            local castDeck = findCastDeck()
+            if not castDeck then
+                print("Error: Cast deck vanished during specials loop.")
                 break
             end
 
             isCloning = true
-            local success = cloneCardFromDeck(specDeck, "", specId, spawnPos, {0, 180, 180}, true, config.color)
+            local success = cloneCardFromDeck(castDeck, "", specId, spawnPos, {0, 180, 180}, config.color)
             if success then
                 while isCloning do
                     coroutine.yield(0)
@@ -618,23 +612,19 @@ function getDeckFromZone(zoneGuid)
     return nil
 end
 
--- Find the Characters and Specials decks strictly from the designated Scripting Zones
-function findDecks()
-    local charDeck = getDeckFromZone(CHARACTERS_ZONE_GUID)
-    local specDeck = getDeckFromZone(SPECIALS_ZONE_GUID)
+-- Find the single Cast deck strictly from the designated Scripting Zone
+function findCastDeck()
+    local castDeck = getDeckFromZone(CAST_ZONE_GUID)
     
-    if not charDeck then
-        print("Error: Could not find any Deck or Card inside the Characters Trigger Zone (" .. CHARACTERS_ZONE_GUID .. ").")
-    end
-    if not specDeck then
-        print("Error: Could not find any Deck or Card inside the Specials Trigger Zone (" .. SPECIALS_ZONE_GUID .. ").")
+    if not castDeck then
+        print("Error: Could not find any Deck or Card inside the Cast Trigger Zone (" .. CAST_ZONE_GUID .. ").")
     end
     
-    return charDeck, specDeck
+    return castDeck
 end
 
 -- Core Function: Clones a specific card by name OR unique ID (GM Notes) from a deck, and drops original back
-function cloneCardFromDeck(deck, cardName, cardId, targetPos, targetRot, isSpecial, playerColor)
+function cloneCardFromDeck(deck, cardName, cardId, targetPos, targetRot, playerColor)
     -- Handle single Card container vs Deck container
     if deck.type == "Card" then
         local matched = false
@@ -654,13 +644,11 @@ function cloneCardFromDeck(deck, cardName, cardId, targetPos, targetRot, isSpeci
                 position = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
                 rotation = targetRot
             })
-            if isSpecial then
-                Wait.frames(function()
-                    if clonedObj ~= nil and not clonedObj.isDestroyed() then
-                        clonedObj.deal(1, playerColor)
-                    end
-                end, 2)
-            end
+            Wait.frames(function()
+                if clonedObj ~= nil and not clonedObj.isDestroyed() then
+                    clonedObj.deal(1, playerColor)
+                end
+            end, 2)
             -- Release coroutine immediately for single cards
             isCloning = false
             return true
@@ -698,14 +686,12 @@ function cloneCardFromDeck(deck, cardName, cardId, targetPos, targetRot, isSpeci
                         rotation = targetRot
                     })
                     
-                    -- If special action, deal directly into the player's Hand after a small frame delay
-                    if isSpecial then
-                        Wait.frames(function()
-                            if clonedObj ~= nil and not clonedObj.isDestroyed() then
-                                clonedObj.deal(1, playerColor)
-                            end
-                        end, 2)
-                    end
+                    -- Deal the clone directly into the player's Hand after a small frame delay
+                    Wait.frames(function()
+                        if clonedObj ~= nil and not clonedObj.isDestroyed() then
+                            clonedObj.deal(1, playerColor)
+                        end
+                    end, 2)
                     
                     -- Return original card to the deck after a 3-frame delay to let clone spawn safely first
                     Wait.frames(function()

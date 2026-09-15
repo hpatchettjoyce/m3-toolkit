@@ -361,21 +361,58 @@ Optional — the copy-in route is enough for this plan.
 
 ### 3.7 Hardcoded old-format IDs
 
-Grep hits in `tts/TTS_Loader.lua`: `01RHA-01CMP-001`, `02IRO-01CMP-005`, `03VOI-01CMP-010` (onboarding
-scenario casts) and `02IRO-03MIN-009`, `05AHE-03MIN-022` (auto-summon minion pools). New values:
+**Corrected 2026-09-15 (Chunk 4).** This section originally listed **5** IDs — the three onboarding
+champions and the two auto-summon minions. That was an undercount: `tts/TTS_Loader.lua` actually
+hardcodes **32 distinct old-format IDs across 76 occurrences**. The missing 27 are the familiars and
+special actions inside the `ONBOARDING_CASTS` table, which the original grep did not reach. All 32
+are listed below; every one was resolved by name against the old `IN Cha-Tal`/`IN SP` pair (kept in
+`.claude/worktrees/upgrade-plan/`) and matched to exactly one card in `M3_TTS_DB - Cast.csv`, with no
+ambiguities. The five originally listed are unchanged — they agree exactly with the name-derived
+mapping, which is what validates the method.
 
-| Old | New | What |
-|---|---|---|
-| `01RHA-01CMP-001` | `01RHA-01CHP-0001` | Flint Dross |
-| `02IRO-01CMP-005` | `02IRO-01CHP-0034` | Ripple Elshara |
-| `03VOI-01CMP-010` | `03VOI-01CHP-0068` | Lark |
-| `02IRO-03MIN-009` | `02IRO-04MIN-0048` | Driplet |
-| `05AHE-03MIN-022` | `05AHE-04MIN-0148` | Huskling |
+| Old | New | Card | Class | Where |
+|---|---|---|---|---|
+| `01RHA-01CMP-001` | `01RHA-01CHP-0001` | Flint Dross | Champion | onboarding cast |
+| `01RHA-02FAM-002` | `01RHA-03FAM-0005` | Obduron | Familiar | onboarding cast |
+| `01RHA-02FAM-003` | `01RHA-03FAM-0006` | Cinderhulk | Familiar | onboarding cast |
+| `01RHA-02FAM-004` | `01RHA-03FAM-0007` | Saltpetre Pellobok | Familiar | onboarding cast |
+| `01RHA-05SPA-001` | `01RHA-07SPA-0019` | Thermal Venting | Special Action | onboarding cast |
+| `01RHA-05SPA-003` | `01RHA-07SPA-0021` | Smoke Cloud | Special Action | onboarding cast |
+| `01RHA-05SPA-005` | `01RHA-07SPA-0022` | Obsidian Slumber | Special Action | onboarding cast |
+| `01RHA-05SPA-006` | `01RHA-07SPA-0023` | Harden Crust | Special Action | onboarding cast |
+| `01RHA-05SPA-038` | `01RHA-07SPA-0025` | Rupture Strike | Special Action | onboarding cast |
+| `01RHA-05SPA-063` | `01RHA-07SPA-0030` | Tectonic Battery | Special Action | onboarding cast |
+| `02IRO-01CMP-005` | `02IRO-01CHP-0034` | Ripple Elshara | Champion | onboarding cast |
+| `02IRO-02FAM-006` | `02IRO-03FAM-0038` | Tumultuous Dropple | Familiar | onboarding cast |
+| `02IRO-02FAM-007` | `02IRO-03FAM-0039` | Ponderous Dropple | Familiar | onboarding cast |
+| `02IRO-02FAM-008` | `02IRO-03FAM-0040` | Puddling | Familiar | onboarding cast |
+| `02IRO-03MIN-009` | `02IRO-04MIN-0048` | Driplet | Minion | auto-summon pool |
+| `02IRO-05SPA-010` | `02IRO-07SPA-0055` | Tidal Surge | Special Action | onboarding cast |
+| `02IRO-05SPA-011` | `02IRO-07SPA-0056` | Ameliorate | Special Action | onboarding cast |
+| `02IRO-05SPA-012` | `02IRO-07SPA-0057` | Caught in the Eddies | Special Action | onboarding cast |
+| `02IRO-05SPA-041` | `02IRO-07SPA-0058` | Permeate | Special Action | onboarding cast |
+| `02IRO-05SPA-065` | `02IRO-07SPA-0062` | Undertow | Special Action | onboarding cast |
+| `02IRO-05SPA-067` | `02IRO-07SPA-0064` | Aqueduct | Special Action | onboarding cast |
+| `03VOI-01CMP-010` | `03VOI-01CHP-0068` | Lark | Champion | onboarding cast |
+| `03VOI-02FAM-011` | `03VOI-03FAM-0072` | Huma'ra | Familiar | onboarding cast |
+| `03VOI-02FAM-012` | `03VOI-03FAM-0073` | Lu'ann | Familiar | onboarding cast |
+| `03VOI-02FAM-050` | `03VOI-03FAM-0078` | Stympharaq | Familiar | onboarding cast |
+| `03VOI-05SPA-013` | `03VOI-07SPA-0086` | Dust Bath | Special Action | onboarding cast |
+| `03VOI-05SPA-014` | `03VOI-07SPA-0087` | "Finish them!" | Special Action | onboarding cast |
+| `03VOI-05SPA-016` | `03VOI-07SPA-0089` | Sand Blast | Special Action | onboarding cast |
+| `03VOI-05SPA-017` | `03VOI-07SPA-0090` | "Let the talons fly!" | Special Action | onboarding cast |
+| `03VOI-05SPA-018` | `03VOI-07SPA-0091` | Snare | Special Action | onboarding cast |
+| `03VOI-05SPA-048` | `03VOI-07SPA-0095` | Flee | Special Action | onboarding cast |
+| `05AHE-03MIN-022` | `05AHE-04MIN-0148` | Huskling | Minion | auto-summon pool |
 
 The `CMP/FAM/MIN/TAL` segment map also appears in `Floating_Health_Tracker.lua` **and** is duplicated
 inside `Model_ID_Injector.lua` (which embeds the tracker source). Per **D2** both copies are
-**deleted**, not updated — see §3.2. These five IDs in `TTS_Loader.lua` are genuine identifiers being
+**deleted**, not updated — see §3.2. These IDs in `TTS_Loader.lua` are genuine identifiers being
 looked up, not parsed for meaning, so they do just need the new values.
+
+**`Model_ID_Injector.lua` still declares its own `CHARACTERS_ZONE_GUID`** (line 17, same `83f62b`).
+Chunk 4 did not touch it — that is Chunk 5's file. It points at the same physical zone, so it keeps
+working once the merged Cast deck sits there.
 
 ---
 
@@ -682,7 +719,7 @@ boundary precisely so the 1734-line frontend stays untouched.
   hard-won.
 - `loadCastCoroutine()` (line ~341) is the caller that walks champion -> familiars -> talismans ->
   specials against the two decks; its lock-release-on-every-exit-path behaviour must survive the edit.
-- Update the 5 hardcoded IDs per the table in §3.7.
+- Update the 32 hardcoded IDs per the table in §3.7 (76 occurrences — not 5; see the correction there).
 - Re-verify the onboarding scenario cast lists still name real cards under the new IDs.
 - Keep `getMatchDataJson()` and the specials log intact — `End_Game_Controller.lua` calls across
   scripts and the webhook contract shouldn't move in this chunk.
