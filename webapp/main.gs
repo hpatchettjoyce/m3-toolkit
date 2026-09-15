@@ -4,11 +4,16 @@
  * Date: Sunday, 7 June 2026
  */
 
-// Global Sheet configuration names
+// Global Sheet configuration names.
+// The `IN ` prefix is the project's convention for a tab that feeds INTO the
+// system: `IN TTS` is the match data posted in from Tabletop Simulator,
+// `IN Cast` is the card data the web app reads out.
 var MATCH_SHEET_NAME = "IN TTS";
 // The tab holding all 200 cast cards. Change this if the tab is renamed —
 // getCardDatabase() lists the available tabs in its error if it can't find it.
-var CAST_SHEET_NAME = "Cast";
+// Note this resolves against the spreadsheet the script is BOUND to, which is
+// not necessarily the card database itself.
+var CAST_SHEET_NAME = "IN Cast";
 
 /**
  * Serves the HTML frontend interface to clients.
@@ -259,16 +264,16 @@ var CAST_UNIT_CLASSES = { "Familiar": true, "Minion": true, "Talisman": true };
 
 /**
  * Compiles and returns the champion / unit / special database from the single
- * `Cast` tab, merged with card art looked up by card ID.
+ * `IN Cast` tab, merged with card art looked up by card ID.
  */
 function getCardDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var castSheet = ss.getSheetByName(CAST_SHEET_NAME);
 
   if (!castSheet) {
-    // Name the tabs that *do* exist. The cast tab has been renamed before
-    // ("IN CAST" -> "Cast"), and without this the error is a dead end: the fix
-    // is always a one-line change to CAST_SHEET_NAME at the top of this file.
+    // Name the tabs that *do* exist. The cast tab has been renamed more than
+    // once ("IN CAST" -> "Cast" -> "IN Cast"), and without this the error is a
+    // dead end: the fix is always a one-line change to CAST_SHEET_NAME above.
     var available = ss.getSheets().map(function (sheet) { return sheet.getName(); });
     var near = available.filter(function (sheetName) {
       return sheetName.trim().toLowerCase() === CAST_SHEET_NAME.trim().toLowerCase();

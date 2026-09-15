@@ -3,7 +3,7 @@
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
 **Status:** Chunks 0, 1 and 2 done — Chunk 4 is next (Chunk 3 is withdrawn, D11). The validator
 **passes clean** on the current data, the compiler emits an ID-keyed `CardImages.gs` with all 200
-cards, and `main.gs` now serves all 200 from the single `Cast` tab with art looked up by card ID.
+cards, and `main.gs` now serves all 200 from the single `IN Cast` tab with art looked up by card ID.
 **Not yet run in Apps Script:** Chunk 2 is verified against the real CSV through a Node harness, but
 `clasp push` and the browser test are still outstanding.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
@@ -578,8 +578,8 @@ card art still loads.
 §3.1 resolve, and print preview still produces readable cards.
 
 **Done 2026-09-15 (code; browser test outstanding).** `getCardDatabase()` is a rewrite, not a patch.
-`CHAR_SHEET_NAME`/`SP_SHEET_NAME` collapse to `CAST_SHEET_NAME = "Cast"`; `MATCH_SHEET_NAME` is
-untouched. Verified by running the real function over the real 200-row CSV in a Node harness with
+`CHAR_SHEET_NAME`/`SP_SHEET_NAME` collapse to a single `CAST_SHEET_NAME` (now `"IN Cast"` — the tab
+was renamed twice while this chunk was in flight); `MATCH_SHEET_NAME` is untouched. Verified by running the real function over the real 200-row CSV in a Node harness with
 `SpreadsheetApp` stubbed — 29 assertions, all passing, **zero warnings**:
 
 - **200 cards** — 12 champions, 86 units (68 Familiar + 6 Minion + 12 Talisman), 102 specials, 6
