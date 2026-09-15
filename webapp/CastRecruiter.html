@@ -6,14 +6,48 @@
     <title>Monumentum Cast Recruiter</title>
     <style>
         :root {
+            /* Screen chrome. Branding pass 1 step 2 re-defines these tokens for
+               the off-black ground; nothing below this group is paper-facing. */
             --primary-colour: #2c3e50;
+            --primary-strong-colour: #34495e;
             --accent-colour: #d35400;
+            --accent-hover-colour: #e67e22;
             --bg-colour: #f8f9fa;
             --panel-bg: #ffffff;
+            --surface-bg: #f8f9fa;
+            --overlay-bg: #f4f6f7;
+            --field-bg: #ffffff;
             --text-colour: #333333;
+            --heading-text-colour: #555555;
+            --subtle-text-colour: #666666;
+            --muted-text-colour: #7f8c8d;
+            --on-fill-colour: #ffffff;
             --border-colour: #e0e0e0;
+            --card-back-colour: #222222;
+            --card-back-empty-colour: #333333;
             --warning-colour: #c0392b;
+            --warning-bg: #fadbd8;
+            --warning-border: #f1948a;
             --success-colour: #27ae60;
+            --success-hover-colour: #2196f3;
+            --neutral-colour: #7f8c8d;
+            --neutral-hover-colour: #95a5a6;
+            --scrim-colour: rgba(0, 0, 0, 0.5);
+            --shadow-rgb: 0, 0, 0;
+
+            /* Ink. The printed sheet and its on-screen preview. These stay
+               light-on-white when the chrome above goes dark - the print styles
+               exist to save ink on home printers. Do not re-theme them. */
+            --ink-paper: #ffffff;
+            --ink-title-colour: #000000;
+            --ink-text-colour: #111111;
+            --ink-subtle-colour: #555555;
+            --ink-rule-colour: #111111;
+            --ink-stat-bg: #f2f4f4;
+            --ink-stat-border: #bdc3c7;
+            --ink-stat-text: #222222;
+            --ink-faction-fallback: #333333;
+
             --radius: 12px;
         }
 
@@ -32,7 +66,7 @@
             background: var(--panel-bg);
             padding: 30px;
             border-radius: var(--radius);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(var(--shadow-rgb), 0.05);
             box-sizing: border-box;
         }
 
@@ -62,18 +96,18 @@
             aspect-ratio: 1 / 1.4;
             border-radius: var(--radius);
             background-repeat: no-repeat;
-            background-color: #222;
+            background-color: var(--card-back-colour);
             border: 3px solid transparent;
             cursor: pointer;
             box-sizing: border-box;
             position: relative;
             transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 8px rgba(var(--shadow-rgb), 0.15);
         }
 
         .visual-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            box-shadow: 0 8px 16px rgba(var(--shadow-rgb), 0.25);
         }
 
         .visual-card.selected {
@@ -89,13 +123,13 @@
             width: 32px;
             height: 32px;
             background-color: var(--accent-colour);
-            color: white;
+            color: var(--on-fill-colour);
             border-radius: 50%;
-            border: 2px solid white;
+            border: 2px solid var(--panel-bg);
             text-align: center;
             font-weight: bold;
             font-size: 0.9rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(var(--shadow-rgb), 0.3);
             z-index: 10;
             outline: none;
             cursor: pointer;
@@ -120,14 +154,14 @@
             top: 20px;
             right: 20px;
             z-index: 2000;
-            background: white;
+            background: var(--panel-bg);
             border: 2px solid var(--primary-colour);
             border-radius: var(--radius);
             padding: 12px 18px;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(var(--shadow-rgb), 0.15);
             font-weight: bold;
         }
 
@@ -139,7 +173,7 @@
         }
 
         .status-label {
-            color: #7f8c8d;
+            color: var(--muted-text-colour);
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.5px;
@@ -160,7 +194,7 @@
             border-radius: var(--radius);
             border: 1px solid var(--border-colour);
             box-sizing: border-box;
-            background-color: #fff;
+            background-color: var(--field-bg);
         }
 
         /* Section dividers */
@@ -191,7 +225,7 @@
 
         h3 {
             font-size: 1.15rem;
-            color: #555;
+            color: var(--heading-text-colour);
             margin-top: 20px;
             margin-bottom: 15px;
             border-left: 4px solid var(--primary-colour);
@@ -215,22 +249,22 @@
 
         select {
             margin-bottom: 15px;
-            background-color: #fff;
+            background-color: var(--field-bg);
         }
 
         .warning-box {
-            background-color: #fadbd8;
+            background-color: var(--warning-bg);
             color: var(--warning-colour);
             padding: 15px;
             border-radius: var(--radius);
             margin-bottom: 25px;
             display: none;
-            border: 1px solid #f1948a;
+            border: 1px solid var(--warning-border);
         }
 
         .btn-export {
             background-color: var(--accent-colour);
-            color: white;
+            color: var(--on-fill-colour);
             font-size: 1.15rem;
             font-weight: bold;
             border: none;
@@ -240,20 +274,20 @@
         }
 
         .btn-export:hover {
-            background-color: #e67e22;
+            background-color: var(--accent-hover-colour);
         }
 
         textarea {
             resize: vertical;
             min-height: 150px;
             font-family: monospace;
-            background-color: #f8f9fa;
+            background-color: var(--surface-bg);
         }
 
         .loader {
             text-align: center;
             font-style: italic;
-            color: #666;
+            color: var(--subtle-text-colour);
             font-size: 1.1rem;
             margin: 40px 0;
         }
@@ -264,7 +298,7 @@
         
         .empty-message {
             font-style: italic;
-            color: #7f8c8d;
+            color: var(--muted-text-colour);
             font-size: 0.95rem;
             grid-column: 1 / -1;
             text-align: center;
@@ -315,7 +349,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: #f4f6f7;
+            background-color: var(--overlay-bg);
             z-index: 3000;
             display: flex;
             flex-direction: column;
@@ -326,15 +360,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #2c3e50;
-            color: white;
+            background-color: var(--primary-colour);
+            color: var(--on-fill-colour);
             padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(var(--shadow-rgb), 0.1);
         }
 
         .print-overlay-header h2 {
             margin: 0;
-            color: white;
+            color: var(--on-fill-colour);
             border-bottom: none;
             padding-bottom: 0;
             font-size: 1.5rem;
@@ -342,7 +376,7 @@
 
         .btn-confirm-print {
             background-color: var(--success-colour);
-            color: white;
+            color: var(--on-fill-colour);
             font-weight: bold;
             border: none;
             cursor: pointer;
@@ -353,12 +387,12 @@
         }
 
         .btn-confirm-print:hover {
-            background-color: #2196f3;
+            background-color: var(--success-hover-colour);
         }
 
         .btn-close-print {
-            background-color: #7f8c8d;
-            color: white;
+            background-color: var(--neutral-colour);
+            color: var(--on-fill-colour);
             font-weight: bold;
             border: none;
             cursor: pointer;
@@ -369,7 +403,7 @@
         }
 
         .btn-close-print:hover {
-            background-color: #95a5a6;
+            background-color: var(--neutral-hover-colour);
         }
 
         .print-overlay-body {
@@ -391,8 +425,8 @@
         .print-page {
             width: 210mm;
             height: 297mm;
-            background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: var(--ink-paper);
+            box-shadow: 0 4px 15px rgba(var(--shadow-rgb), 0.1);
             margin: 20px auto;
             box-sizing: border-box;
             padding: 15.15mm 9.75mm;
@@ -415,16 +449,16 @@
         .print-card {
             width: 63.5mm;
             height: 88.9mm;
-            background: white;
-            border: 2px solid var(--faction-color, #333);
+            background: var(--ink-paper);
+            border: 2px solid var(--faction-color, var(--ink-faction-fallback));
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             padding: 10px;
-            color: #111;
+            color: var(--ink-text-colour);
             font-family: Arial, sans-serif;
             position: relative;
-            background-color: #fff !important;
+            background-color: var(--ink-paper) !important;
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -433,7 +467,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid var(--faction-color, #333);
+            border-bottom: 2px solid var(--faction-color, var(--ink-faction-fallback));
             padding-bottom: 4px;
             margin-bottom: 4px;
         }
@@ -441,7 +475,7 @@
         .print-card-name {
             font-size: 0.9rem;
             font-weight: bold;
-            color: #000;
+            color: var(--ink-title-colour);
             margin: 0;
             line-height: 1.1;
             max-width: 70%;
@@ -450,7 +484,7 @@
         .print-card-cost-class {
             font-size: 0.75rem;
             font-weight: bold;
-            color: var(--faction-color, #333);
+            color: var(--faction-color, var(--ink-faction-fallback));
             text-align: right;
             line-height: 1.1;
         }
@@ -459,7 +493,7 @@
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #555;
+            color: var(--ink-subtle-colour);
             margin-bottom: 6px;
             font-weight: bold;
         }
@@ -467,8 +501,8 @@
         .print-card-stats {
             display: flex;
             justify-content: space-between;
-            background-color: #f2f4f4;
-            border: 1px solid #bdc3c7;
+            background-color: var(--ink-stat-bg);
+            border: 1px solid var(--ink-stat-border);
             border-radius: 4px;
             padding: 2px 8px;
             margin-bottom: 6px;
@@ -477,16 +511,16 @@
         }
 
         .print-card-stats span {
-            color: #222;
+            color: var(--ink-stat-text);
         }
 
         .print-card-art-placeholder {
             width: 1.8in;
             height: 1.3in;
-            border: 2px solid #111;
+            border: 2px solid var(--ink-rule-colour);
             border-radius: 4px;
             margin: 6px auto;
-            background-color: #ffffff;
+            background-color: var(--ink-paper);
             box-sizing: border-box;
         }
 
@@ -494,7 +528,7 @@
             flex: 1;
             font-size: 0.65rem;
             line-height: 1.15;
-            color: #111;
+            color: var(--ink-text-colour);
             overflow: hidden;
             word-wrap: break-word;
         }
@@ -507,8 +541,8 @@
             }
 
             body {
-                background: white !important;
-                color: black !important;
+                background: var(--ink-paper) !important;
+                color: var(--ink-title-colour) !important;
                 padding: 0 !important;
                 margin: 0 !important;
             }
@@ -524,7 +558,7 @@
                 left: 0 !important;
                 width: auto !important;
                 height: auto !important;
-                background: white !important;
+                background: var(--ink-paper) !important;
                 display: block !important;
             }
 
@@ -553,7 +587,7 @@
                 box-shadow: none !important; /* Removes the drop shadow ink waste when printing! */
                 padding: 15.15mm 9.75mm !important;
                 box-sizing: border-box !important;
-                background: white !important;
+                background: var(--ink-paper) !important;
                 page-break-after: always !important;
                 break-after: page !important;
             }
@@ -573,7 +607,7 @@
 
             .print-card {
                 box-shadow: none !important;
-                border: 2px solid var(--faction-color, #333) !important;
+                border: 2px solid var(--faction-color, var(--ink-faction-fallback)) !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
@@ -586,7 +620,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0,0,0,0.5);
+            background-color: var(--scrim-colour);
             z-index: 4000;
             display: flex;
             justify-content: center;
@@ -594,12 +628,12 @@
         }
 
         .import-modal-content {
-            background-color: white;
+            background-color: var(--panel-bg);
             padding: 25px;
             border-radius: var(--radius);
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 25px rgba(var(--shadow-rgb), 0.3);
             box-sizing: border-box;
         }
 
@@ -615,7 +649,7 @@
             width: 100%;
             height: 180px;
             font-family: monospace;
-            background-color: #f8f9fa;
+            background-color: var(--surface-bg);
             border: 1px solid var(--border-colour);
             border-radius: var(--radius);
             padding: 10px;
@@ -650,7 +684,7 @@
                     <option value="">-- Choose a Dominion --</option>
                 </select>
             </div>
-            <button id="btn-import-top" class="btn-import" style="flex: 1; min-width: 150px; background-color: #2c3e50; color: white; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; height: 48px; transition: background-color 0.2s;">Import Cast JSON</button>
+            <button id="btn-import-top" class="btn-import" style="flex: 1; min-width: 150px; background-color: var(--primary-colour); color: var(--on-fill-colour); font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; height: 48px; transition: background-color 0.2s;">Import Cast JSON</button>
         </div>
 
         <div id="builder-content" class="hidden">
@@ -692,7 +726,7 @@
 
             <div class="section">
                 <div style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button id="btn-print" class="btn-print" style="background-color: #34495e; color: white; font-weight: bold; font-size: 1.15rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; flex: 1; min-width: 140px; transition: background-color 0.2s;">Print Cards</button>
+                    <button id="btn-print" class="btn-print" style="background-color: var(--primary-strong-colour); color: var(--on-fill-colour); font-weight: bold; font-size: 1.15rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; flex: 1; min-width: 140px; transition: background-color 0.2s;">Print Cards</button>
                     <button id="btn-export" class="btn-export" style="margin-bottom: 0; flex: 1; min-width: 140px;">Export Cast</button>
                 </div>
                 <textarea id="export-output" readonly placeholder="Your exported JSON will appear here..."></textarea>
@@ -719,11 +753,11 @@
 <div id="import-modal" class="import-modal hidden">
     <div class="import-modal-content">
         <h3 style="margin-top: 0; border-left: none; padding-left: 0; font-size: 1.3rem; color: var(--primary-colour);">Import Shared Cast JSON</h3>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 0; margin-bottom: 15px;">Paste your shared Monumentum Cast JSON into the box below and click "Load Cast".</p>
+        <p style="font-size: 0.9rem; color: var(--subtle-text-colour); margin-top: 0; margin-bottom: 15px;">Paste your shared Monumentum Cast JSON into the box below and click "Load Cast".</p>
         <textarea id="import-input" placeholder="Paste JSON here..."></textarea>
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button id="btn-submit-import" style="background-color: var(--success-colour); color: white; font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Load Cast</button>
-            <button id="btn-cancel-import" style="background-color: #7f8c8d; color: white; font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Cancel</button>
+            <button id="btn-submit-import" style="background-color: var(--success-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Load Cast</button>
+            <button id="btn-cancel-import" style="background-color: var(--neutral-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Cancel</button>
         </div>
     </div>
 </div>
@@ -1266,7 +1300,7 @@
     function getCardStyle(card) {
         if (!card || !card.image) {
             // Default card back
-            return 'background-color: #333;';
+            return 'background-color: var(--card-back-empty-colour);';
         }
         const img = card.image;
         const cols = img.cols;
@@ -1697,7 +1731,7 @@
         els.btnImportTop.style.backgroundColor = 'var(--success-colour)';
         setTimeout(() => {
             els.btnImportTop.textContent = originalText;
-            els.btnImportTop.style.backgroundColor = '#2c3e50';
+            els.btnImportTop.style.backgroundColor = 'var(--primary-colour)';
         }, 3000);
 
         return true;
