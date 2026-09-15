@@ -15,14 +15,33 @@ var MATCH_SHEET_NAME = "IN TTS";
 // not necessarily the card database itself.
 var CAST_SHEET_NAME = "IN Cast";
 
+// Tab icon for the web app. This has to be set here rather than with a
+// <link rel="icon"> in CastRecruiter.html: Apps Script serves the page inside an
+// iframe on a Google-owned top-level document, so the HTML's own icon never reaches
+// the browser tab. setFaviconUrl() is the supported route and it takes a fetchable
+// URL — a data: URI will not do, which is why this needs a hosted raster.
+//
+// TO FILL IN: a PUBLIC URL to a SQUARE logomark PNG, ideally 256x256.
+// Use the logomark on its own (guide PG.02), not the horizontal lockup —
+// assets/branding/Horizontal_Filled_Light.png is 6208x1331, so at 16px of tab it
+// would be an unreadable sliver. A Drive file shared "anyone with the link" works:
+//   https://drive.google.com/thumbnail?id=<FILE_ID>&sz=w256
+// Leave it empty and the app simply keeps Apps Script's default icon.
+var FAVICON_URL = "";
+
 /**
  * Serves the HTML frontend interface to clients.
  */
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('CastRecruiter')
+  var page = HtmlService.createHtmlOutputFromFile('CastRecruiter')
       .setTitle('Monumentum Cast Recruiter')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  // Guarded: setFaviconUrl("") would ask the browser for an empty URL.
+  if (FAVICON_URL) {
+    page.setFaviconUrl(FAVICON_URL);
+  }
+  return page;
 }
 
 /**
