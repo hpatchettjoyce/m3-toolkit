@@ -52,13 +52,32 @@ supplied. Harvey chose this over using them verbatim or giving every card a neut
 
 `dextrous/check_theme_contrast.py` asserts all six on paper, so this cannot regress silently.
 
-## Fonts (for Chunk 7, not Chunk 6)
+## Fonts — ANSWERED (Chunk 7, 2026-09-15)
 
 Embedded in the guide: `Cinzel-Medium`, `Avenir` (Black / Medium / Book, with obliques),
 `ArbanePixel` (Regular / Outline), `AldaOTCEV-LightItalic`, `TimesNewRomanPSMT`.
 
-Times is almost certainly incidental. Which of the others are *the* brand faces, and whether
-web-licensed versions exist, is a Chunk 7 question.
+**Only Cinzel is a brand face, and only for display type.** PG.07 is titled "MONUMENTUM - Logo
+Typography", labels its single specimen "LOGO TYPEFACE", and shows **Cinzel Medium** with a full
+A–Z / a–z / 0–9 setting. No other face appears on that page, and the guide specifies no body face
+at all.
+
+The rest are the *presentation deck's* own fonts, not the brand's. The font resource map settles it:
+
+| Resource | Face | What it draws in the guide |
+|---|---|---|
+| `T1_0`, `T1_1` | ArbanePixel-Regular | page furniture — "PG. 07", "BEX VLE DESIGNS", dates |
+| `TT0` | ArbanePixel-Outline | section headings, e.g. "LOGOMARK SAFE ZONE" |
+| `TT1` | Avenir-Oblique | captions, e.g. "LOGO TYPEFACE", "Logo Safe Zone:" |
+| `TT2` | Avenir-Medium | body copy, e.g. the file-format list |
+| `C2_0` | TimesNewRomanPSMT | incidental |
+
+So there is no brand body face to apply. Cinzel is OFL-licensed and served by Google Fonts, so it
+needs no licence purchase and no self-hosted file. `CastRecruiter.html` uses it for `h1`/`h2` via
+`--font-display`; body copy keeps its sans stack via `--font-body`.
+
+To re-derive the resource map, the same zlib trick that reads the swatches also reads text and
+`/BaseFont` entries — see `dextrous/extract_brand_palette.py` for the stream inflation.
 
 ## Reading the PDF on this machine
 

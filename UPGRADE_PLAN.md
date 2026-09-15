@@ -1,9 +1,11 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunks 0, 1 and 2 done and **verified in the browser** — Chunk 4 is next (Chunk 3 is
-withdrawn, D11). The validator passes clean, the compiler emits an ID-keyed `CardImages.gs` with all
-200 cards, and `main.gs` serves all 200 from the single `IN Cast` tab with art looked up by card ID.
+**Status:** Chunks 0, 1 and 2 done and **verified in the browser**; Chunks 4 and 5 **confirmed in
+TTS by Harvey**; Chunks 6 and 7 (branding) are code-complete and machine-checked but **not yet
+eyeballed in a browser** (Chunk 3 is withdrawn, D11). The validator passes clean, the compiler
+emits an ID-keyed `CardImages.gs` with all 200 cards, and `main.gs` serves all 200 from the single
+`IN Cast` tab with art looked up by card ID.
 Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
 **Still untested:** roster export / re-import, the path most exposed to the `champ_<index>` -> card-ID
 change.
@@ -877,13 +879,14 @@ Two findings worth keeping:
 
 ### Chunk 7 — Branding pass 2: logos and typography
 
-**Prerequisite: PARTLY SATISFIED (2026-09-15).** `assets/branding/Horizontal_Filled_Light.svg` has
-landed — mark and wordmark as one image, a single `fill: #eea145` on one CSS class `.cls-1`, so it
+**Prerequisite: SATISFIED (2026-09-15).** Both `assets/branding/Horizontal_Filled_Light.svg` and
+`.png` are in the repo. The SVG — mark and wordmark as one image, a single `fill: #eea145` on one CSS class `.cls-1`, so it
 recolours trivially once inlined. **Inline it rather than hosting it:** GAS serves one HTML file
 through `HtmlService` with no static asset hosting, and switching `.cls-1` to `currentColor` lets
 one file serve both the dark chrome and the light print styles.
 
-**Still missing: a PNG.** The favicon and TTS both need raster — TTS takes raster textures only.
+**The PNG landed too** (6208x1331), and it is the raster master for anything that cannot take
+vector — TTS takes textures only. It is *not* the right favicon source: see the DONE block below.
 Note the guide's own gold is `#eea145` while the palette's GOLD STONE is `#E4A557`; the SVG is the
 supplied asset, so it wins, but do not "correct" one to the other without asking.
 
@@ -901,6 +904,45 @@ supplied asset, so it wins, but do not "correct" one to the other without asking
 **Test:** visual check at desktop, 900px and 600px widths. Print-preview once more.
 
 **Done when:** the tool is recognisably Monumentum-branded at all three widths.
+
+**DONE 2026-09-15** — three commits, `8214fee`, `27b2c43`, `50f0284`.
+
+**The typography question is answered, and the answer is narrow.** The guide's PG.07 is titled
+"MONUMENTUM - Logo Typography", labels its one specimen "LOGO TYPEFACE", and shows **Cinzel
+Medium** — nothing else. Avenir, ArbanePixel, Alda and Times are embedded in the PDF because they
+set the *presentation deck*, not the brand; the font resource map proves it, they are the faces
+drawing the guide's own body copy and page furniture. So there is no brand body face to apply, and
+`8214fee` uses Cinzel for display type only (h1, h2) behind two new tokens, `--font-display` and
+`--font-body`. Cinzel is OFL and on Google Fonts, so it links rather than needing a licence.
+Re-derive any of this with `python3 dextrous/extract_brand_palette.py` — the same zlib trick reads
+text, not just swatches.
+
+`27b2c43` inlines the horizontal lockup as an **SVG sprite**: one `<symbol>` at the end of the body,
+one `<use>` in the header. The plan asked whether the bulk was acceptable — it is 44 lines and
+16.7KB, and worth it: Apps Script has no static asset hosting, so the alternative was a 148KB PNG
+as a ~198KB base64 blob that could not recolour. The asset's `.cls-1 { fill: #eea145 }` becomes
+`currentColor`. The logo carries the wordmark, so the `h1` is now just "Cast Recruiter".
+
+Three findings worth keeping:
+
+- **`--logo-colour` is its own token, not `--accent-colour`.** The supplied SVG's gold is `#eea145`;
+  the palette page's GOLD STONE is `#E4A557`. Keeping a separate token records the divergence in one
+  place rather than silently resolving it. The contrast checker now asserts it (33 pairs).
+- **The favicon cannot be set from the HTML.** Apps Script serves the page in an iframe under a
+  Google-owned top-level document, so a `<link rel="icon">` never reaches the browser tab.
+  `HtmlOutput.setFaviconUrl()` is the route, it *fetches a URL*, and a `data:` URI will not do — so
+  this is the one branding item that needs a hosted file. `FAVICON_URL` in `main.gs` is guarded and
+  empty, so behaviour is unchanged until a URL is pasted in.
+- **The horizontal PNG is the wrong favicon source.** At 4.7:1 it is a sliver at 16px. The favicon
+  wants the **square logomark** (guide PG.02), which has not been supplied. There is no raster
+  tooling on this machine — no PIL, ImageMagick or `rsvg-convert` — so it cannot be cropped here.
+
+**Deliberately not done:** no logo on the print card. The lockup's gold is only 2.14:1 on white,
+the cards butt with no gap so a logo would crowd the cut line, and the chunk's low-ink goal argues
+against it. Worth revisiting only if Harvey asks.
+
+**Outstanding, needs Harvey:** a square logomark PNG hosted at a public URL, pasted into
+`FAVICON_URL`. Everything else in the chunk is code-complete.
 
 ---
 

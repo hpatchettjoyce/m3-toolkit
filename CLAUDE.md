@@ -50,6 +50,12 @@ Expected `getCardDatabase()` schema:
 - **Dominion colours are ink, not UI.** `FACTION_COLORS` is referenced only by `generatePrintCard`, so it only ever lands on printed cards. `FACTION_PRINT_OVERRIDES` darkens the three that cannot be seen on white stock — the print grid butts cards with no gap, so a card's border is also the line you cut along.
 - UI `.container` max-width is `1200px` on desktop, stepping down through breakpoints at 1100px/900px/600px for mobile — keep panels self-contained at all sizes.
 
+- **The brand face is Cinzel, and it is display type only.** The guide specifies one typeface (PG.07, "LOGO TYPEFACE") and no body face. `--font-display` is screen chrome; the paper-facing `.print-card*` rules keep Arial deliberately, because a webfont that fails to load must not shift a card's metrics — the print grid butts cards with no gap, so a metric shift moves the cut lines.
+
+- **The logo is an inlined SVG sprite, and its gold is not `--accent-colour`.** Apps Script has no static asset hosting, so the lockup lives in the file as a `<symbol>` at the end of the body with a `<use>` in the header; its fill is `currentColor`. The supplied asset's gold is `#eea145` and the palette's GOLD STONE is `#E4A557` — `--logo-colour` keeps them apart on purpose. Don't reconcile them without asking Harvey.
+
+- **The favicon can only be set from `main.gs`, never from the HTML.** Apps Script serves the page in an iframe under a Google-owned top-level document, so a `<link rel="icon">` never reaches the browser tab. `HtmlOutput.setFaviconUrl()` *fetches a URL*, so a `data:` URI will not work either — it needs a hosted file. Same trap for anything else that must reach the real tab, such as the title.
+
 ## Other repo contents
 
 - `dextrous/` — card data JSON exports and `generate_card_images.py` for producing card art.
