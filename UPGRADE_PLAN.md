@@ -1,8 +1,10 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunk 0 done (`dextrous/validate_cast.py`) — Chunk 1 is next. The validator **passes
-clean** on the current data.
+**Status:** Chunks 0 and 1 done — Chunk 2 is next. The validator **passes clean** on the current
+data, and the compiler emits an ID-keyed `CardImages.gs` with all 200 cards. Note `main.gs` still
+reads the old positional `imageMappings.characters[index]`, so the browser view falls back to
+default styling until Chunk 2 switches it to the `cards` map — expected, not a regression.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -473,6 +475,33 @@ different dominions to confirm names and art line up.
 
 **Done when:** script runs clean on the new data, `CardImages.gs` is ID-keyed with 200 cards, and the
 deck imports into TTS with correct hover names.
+
+**Done 2026-09-15.** The script is a rewrite, not a patch: `CompileError` + hard bails replace the
+old `print`-a-warning-and-carry-on style, since every fault it can hit would otherwise write a
+silently shifted deck.
+
+- **200 ID-keyed entries** in `webapp/CardImages.gs`, one card per line (215 lines, down from 1070).
+  `node` confirms `getCardImageMappings()` parses and returns 200 cards. All 200 `url`/`idx` values
+  cross-check against the deck's own `CustomDeck` sheets independently of the compiler; no
+  `{verifycache}` prefix survives.
+- **200 `Nickname` / `GMNotes` / `Description`** injected, each equal to the CSV's `Name` / `ID` /
+  `Class`. The class census on the cards matches §2.3 exactly, and the 4 MINION-class companions of
+  §3.2 (Tocarin, Calazi, Opolkan, Pashan) carry `MINION` — the health bug Chunk 5 inherits is
+  already defused in the data. **No card fell back to a synthetic ID.**
+- **`validate_cast.py` still passes clean (exit 0)** against the injected deck.
+- **The pre-D7 header bug is now a hard failure.** The old script read `"Name (str)"` / `"ID (str)"`
+  literally and injected empty strings without erroring; `REQUIRED_COLUMNS` refuses instead, naming
+  the columns it found.
+- **Teeth proven on copies**, each exit 1 with the spreadsheet row named: pre-D7 headers, a 199-card
+  deck against 200 rows, a duplicate ID, a blank `Class`, a `DeckIDs` list reordered against
+  `ContainedObjects`, and a missing `CustomDeck` sheet.
+- **The glob excludes the superseded exports by name, not by mtime.** `MonuMentuM Characters/Specials
+  08-06-2026.json` still match `MonuMentuM *.json` and are still on disk; ordering on the
+  `DD-MM-YYYY` in the filename (with the qualifier files filtered out) means a fresh clone, which
+  resets every mtime, cannot compile the wrong, differently-shaped export.
+- **The deck is written back minified and ASCII-escaped, matching Dextrous's own export shape**, so
+  an injection is a one-line diff and so is the next re-export. Writing `indent=2` would have made
+  every round trip fight over the whole file.
 
 ---
 
