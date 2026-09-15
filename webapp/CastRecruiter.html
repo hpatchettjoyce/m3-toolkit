@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monumentum Cast Recruiter</title>
+    <!-- Cinzel is the brand guide's one specified face ("LOGO TYPEFACE", PG.07). It is an
+         OFL Google Font, so it can be linked rather than licensed. Everything below falls
+         back to a real stack if the request fails -- see --font-display. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
@@ -52,10 +58,16 @@
             --ink-faction-fallback: #333333;
 
             --radius: 12px;
+
+            /* Type. --font-display is the brand face and is screen chrome only: the
+               paper-facing .print-card* rules keep Arial deliberately, because a webfont
+               that fails to load must not change a card's metrics. */
+            --font-display: 'Cinzel', 'Trajan Pro', Georgia, 'Times New Roman', serif;
+            --font-body: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-body);
             background-color: var(--bg-colour);
             color: var(--text-colour);
             margin: 0;
@@ -217,9 +229,16 @@
             color: var(--primary-colour);
             margin-top: 0;
             margin-bottom: 25px;
+            font-family: var(--font-display);
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
 
         h2 {
+            font-family: var(--font-display);
+            font-weight: 500;
+            letter-spacing: 0.04em;
             font-size: 1.4rem;
             color: var(--primary-colour);
             margin-bottom: 20px;
