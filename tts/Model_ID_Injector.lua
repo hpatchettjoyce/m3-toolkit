@@ -5,16 +5,17 @@
      INSTRUCTIONS:
      1. Attach this script to a dedicated token or object on your table.
      2. Create two Scripting Trigger Zones on your table:
-        - Zone 1: Over the Characters Deck (that has IDs in GMNotes).
+        - Zone 1: Over the Cast Deck (that has IDs in GMNotes and the class in Description).
         - Zone 2: Over the Bag containing the raw 3D Models.
      3. Enter their GUIDs in CHARACTERS_ZONE_GUID and MODELS_BAG_ZONE_GUID below.
      4. Click the "Inject IDs to Models" button.
-     5. The script will take each model out of the bag, clean its name, clear its description, assign its GMNotes, and return it.
+     5. The script will take each model out of the bag, clean its name, stamp its card class into
+        its description, assign its GMNotes, and return it.
      6. Once complete, you can right-click and save the Bag as a customized game component!
 --]]
 
 -- =============== CONFIGURATION GUIDs (REQUIRED) ===============
-CHARACTERS_ZONE_GUID = "83f62b"  -- Zone containing the Characters Deck
+CHARACTERS_ZONE_GUID = "83f62b"  -- Zone containing the Cast Deck (same physical zone as before)
 MODELS_BAG_ZONE_GUID = "fe2114"  -- Zone containing the Raw Models Bag
 
 
@@ -22,7 +23,7 @@ local isProcessing = false
 
 function onLoad()
     self.setName("Monumentum Model ID Injector")
-    self.setDescription("Standalone utility to permanently inject Card IDs, clean nicknames, and strip stats from 3D models in a bag.")
+    self.setDescription("Standalone utility to permanently inject Card IDs, clean nicknames, and stamp card classes onto 3D models in a bag.")
     
     -- Render Inject Button
     self.createButton({
@@ -87,13 +88,16 @@ function injectIdsCoroutine()
     broadcastToAll("Extracting Card ID mappings from the Characters Deck...", {0.9, 0.9, 0.2})
     
     -- 1. Extract Name-to-ID mapping from the Deck
-    local nameToId = {}
+    -- Maps lowercased card name -> { id, class }. The class rides along from the deck card's
+    -- Description (written by generate_card_images.py) so the model can be stamped with it --
+    -- see UPGRADE_PLAN.md S3.2. Note Description is NOT a name fallback any more: it holds the
+    -- class now, so falling back to it would map a card under the name "CHAMPION".
+    local nameToCard = {}
     if deck.type == "Card" then
         local name = deck.getName()
-        if name == "" or name == nil then name = deck.getDescription() end
         local id = deck.getGMNotes()
         if name and name ~= "" and id and id ~= "" then
-            nameToId[name:lower()] = id
+            nameToCard[name:lower()] = { id = id, class = deck.getDescription() }
         end
     else
         for _, cardInfo in ipairs(deck.getObjects()) do
@@ -101,7 +105,7 @@ function injectIdsCoroutine()
             if name == "" or name == nil then name = cardInfo.name end
             local id = cardInfo.gm_notes
             if name and name ~= "" and id and id ~= "" then
-                nameToId[name:lower()] = id
+                nameToCard[name:lower()] = { id = id, class = cardInfo.description }
             end
         end
     end
@@ -117,13 +121,14 @@ function injectIdsCoroutine()
         
         if rawName and rawName ~= "" then
             local modelName = cleanModelName(rawName)
-            local matchedId = nameToId[modelName:lower()]
-            if matchedId then
+            local matchedCard = nameToCard[modelName:lower()]
+            if matchedCard then
                 table.insert(itemsToProcess, { 
                     guid = bObj.guid, 
                     rawName = rawName, 
                     cleanName = modelName, 
-                    id = matchedId 
+                    id = matchedCard.id,
+                    class = matchedCard.class
                 })
             else
                 table.insert(unmatchedModels, rawName)
@@ -162,8 +167,9 @@ function injectIdsCoroutine()
                 obj.setGMNotes(item.id)
                 -- 3b. Rename to clean Name (removes "(6)" etc.)
                 obj.setName(item.cleanName)
-                -- 3c. Clear the description (removes prowess/fortitude stats)
-                obj.setDescription("")
+                -- 3c. Replace the description (prowess/fortitude stats) with the card's class.
+                -- The health tracker reads its class from here; GMNotes stays the plain ID. S3.2
+                obj.setDescription(item.class or "")
                 -- 3d. Inject Floating Health Tracker script
                 obj.script_code = HEALTH_TRACKER_SCRIPT
                 local reloadedObj = obj.reload()
@@ -182,7 +188,7 @@ function injectIdsCoroutine()
         end
     end
     
-    broadcastToAll("Success: " .. #itemsToProcess .. " models successfully updated! Re-named to clean names, cleared descriptions, injected with Database IDs, and loaded with the Floating Health Tracker script. Please save the updated Bag.", {0.1, 0.9, 0.1})
+    broadcastToAll("Success: " .. #itemsToProcess .. " models successfully updated! Re-named to clean names, stamped with their card class, injected with Database IDs, and loaded with the Floating Health Tracker script. Please save the updated Bag.", {0.1, 0.9, 0.1})
     isProcessing = false
     return 1
 end
@@ -233,14 +239,12 @@ MINION_DEFAULT_HEALTH = 2   -- Default for any model whose card "class" is Minio
 --   "standee" - Forces Custom Standee behavior (UI is always visible)
 OBJECT_TYPE = "auto"
 
--- Card "class" is read from the model's GMNotes ID injected by the Model ID Injector
--- (format "01RHA-02FAM-002" -- the letters in the middle segment identify the class).
-CLASS_CODES = {
-    CMP = "Champion",
-    FAM = "Familiar",
-    MIN = "Minion",
-    TAL = "Talisman"
-}
+-- Card "class" is stamped onto this model's Description by the Model ID Injector, which copies it
+-- from the matching deck card. The ID in GMNotes is for sorting only and is NEVER parsed for
+-- meaning -- see UPGRADE_PLAN.md S3.2. Parsing the ID was the old approach and it was wrong: 4 of
+-- the 6 Minion cards carry a "COM" segment, so they classified as non-Minions.
+-- The deck writes the class in upper case ("MINION"), so compare case-insensitively.
+MINION_CLASS = "MINION"
 
 -- 1. CONFIGURATION FOR CUSTOM TILES (Lying flat on the table)
 TILE_CONFIG = {
@@ -330,18 +334,8 @@ function classifyObject()
         isTileObject = (self.tag == "Tile")
     end
 
-    isMinion = (getModelClass() == "Minion")
-end
-
--- Reads the card "class" (Champion/Familiar/Minion/Talisman) out of this model's
--- GMNotes ID, e.g. "01RHA-02FAM-002" -> "Familiar". Returns nil if unset/unrecognised.
-function getModelClass()
-    local notes = self.getGMNotes()
-    if not notes or notes == "" then return nil end
-
-    local segment = notes:match("^[^-]+%-([^-]+)%-")
-    local code = segment and segment:match("%a+")
-    return code and CLASS_CODES[code] or nil
+    local class = self.getDescription()
+    isMinion = (class ~= nil and class:upper() == MINION_CLASS)
 end
 
 -- Resolves the starting health for this object based on card class alone

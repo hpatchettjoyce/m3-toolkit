@@ -28,14 +28,12 @@ MINION_DEFAULT_HEALTH = 2   -- Default for any model whose card "class" is Minio
 --   "standee" - Forces Custom Standee behavior (UI is always visible)
 OBJECT_TYPE = "auto"
 
--- Card "class" is read from the model's GMNotes ID injected by the Model ID Injector
--- (format "01RHA-02FAM-002" -- the letters in the middle segment identify the class).
-CLASS_CODES = {
-    CMP = "Champion",
-    FAM = "Familiar",
-    MIN = "Minion",
-    TAL = "Talisman"
-}
+-- Card "class" is stamped onto this model's Description by the Model ID Injector, which copies it
+-- from the matching deck card. The ID in GMNotes is for sorting only and is NEVER parsed for
+-- meaning -- see UPGRADE_PLAN.md S3.2. Parsing the ID was the old approach and it was wrong: 4 of
+-- the 6 Minion cards carry a "COM" segment, so they classified as non-Minions.
+-- The deck writes the class in upper case ("MINION"), so compare case-insensitively.
+MINION_CLASS = "MINION"
 
 -- 1. CONFIGURATION FOR CUSTOM TILES (Lying flat on the table)
 TILE_CONFIG = {
@@ -125,18 +123,8 @@ function classifyObject()
         isTileObject = (self.tag == "Tile")
     end
 
-    isMinion = (getModelClass() == "Minion")
-end
-
--- Reads the card "class" (Champion/Familiar/Minion/Talisman) out of this model's
--- GMNotes ID, e.g. "01RHA-02FAM-002" -> "Familiar". Returns nil if unset/unrecognised.
-function getModelClass()
-    local notes = self.getGMNotes()
-    if not notes or notes == "" then return nil end
-
-    local segment = notes:match("^[^-]+%-([^-]+)%-")
-    local code = segment and segment:match("%a+")
-    return code and CLASS_CODES[code] or nil
+    local class = self.getDescription()
+    isMinion = (class ~= nil and class:upper() == MINION_CLASS)
 end
 
 -- Resolves the starting health for this object based on card class alone
