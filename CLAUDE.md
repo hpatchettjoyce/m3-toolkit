@@ -45,7 +45,9 @@ Expected `getCardDatabase()` schema:
 ## Conventions & gotchas
 
 - **One `getCardDatabase()` only**: since all `.gs` files share a flat global scope, two files defining the same function name silently override each other. This bit the project once (`CardDatabase.gs` used to define its own `getCardDatabase()`); that file has since been deleted, leaving `main.gs` as the sole definition. Don't reintroduce a second card-fetching implementation in another `.gs` file.
-- Keep the `:root` CSS custom properties block intact (`--primary-colour`, `--accent-colour`, etc.) for consistent theming.
+- **Every colour in `CastRecruiter.html` is a `:root` custom property, and they come in two families that must not be mixed.** Screen chrome (`--primary-colour`, `--panel-bg`, …) is the brand's off-black theme. **`--ink-*` is the printed sheet and stays light on white** — the print styles exist to save ink on home printers. The trap: the `.print-card*` rules live *outside* `@media print`, because they also render the on-screen print overlay, so you cannot keep print light by scoping the dark tokens to the `@media print` block. Use an `--ink-*` token for anything that reaches paper and a chrome token for anything that does not.
+- **Run `python3 dextrous/check_theme_contrast.py` after any colour change.** It reads the tokens and both dominion maps straight out of `CastRecruiter.html` and asserts every foreground/background pair the app renders, each labelled with the rule that produces it. Two pairs are non-obvious: `--success-colour` and `--warning-colour` are the ether/specials tracker *text* as well as button fills, so they have to clear on both.
+- **Dominion colours are ink, not UI.** `FACTION_COLORS` is referenced only by `generatePrintCard`, so it only ever lands on printed cards. `FACTION_PRINT_OVERRIDES` darkens the three that cannot be seen on white stock — the print grid butts cards with no gap, so a card's border is also the line you cut along.
 - UI `.container` max-width is `1200px` on desktop, stepping down through breakpoints at 1100px/900px/600px for mobile — keep panels self-contained at all sizes.
 
 ## Other repo contents
