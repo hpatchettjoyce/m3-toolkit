@@ -264,6 +264,15 @@ is its delivery mechanism, which is why the embedded copy must stay byte-identic
 file. Quick tell for which version is loaded: the string `Class check` exists only in the current
 injector, so no `Class check` line in the console means the token still has the old script.
 
+**The long-standing "standees don't face the player who drew them" defect resolved itself in the same
+pass (Harvey, 2026-09-15): *"The orientation was working as well. Not sure why it wasn't before."***
+No rotation code was changed. `targetModelRot` (`TTS_Loader.lua:353`) still reads
+`Red -> {0,270,0}`, `Blue -> {0,90,0}` — the values two earlier commits (`bb3670a`, `d5971ce`) had
+already converged on. The likeliest explanation is that the models themselves carried stale state
+until they were re-injected from a correctly-updated injector. **Had a third speculative Y-flip been
+committed, it would have broken a setting that was already correct** — the reason it was left alone
+is worth remembering the next time a 3D defect can't be reproduced offline.
+
 **`Fortitude` is NOT health — settled by Harvey, 2026-09-15.** `Fortitude` is a character's
 **defense** and `Prowess` is its **strength**; an attack compares strength against defense, which is
 what lets starting health be normalised to a flat value. So `Minion -> 2, everything else -> 6` is
@@ -805,7 +814,17 @@ and the floating dial appears. Then specifically check health defaults: a champi
 
 ### Chunk 6 — Branding pass 1: colour system and dark theme
 
-**Prerequisite:** `assets/branding/M3 Branding Guide.pdf` copied into the repo (see §3.6).
+**Prerequisite: SATISFIED (2026-09-15).** `assets/branding/M3 Branding Guide.pdf` is in the repo and
+committed. **The palette is already extracted — start from `assets/branding/palette-extracted.md`,
+not from the PDF.** All 18 swatches, RGB-cross-checked 18/18, plus the embedded font list for
+Chunk 7. Re-derive with `python3 dextrous/extract_brand_palette.py`.
+
+Two things that file settles before you start: the off-black ground this chunk asks for is
+**`#041212` (OFF-BLACK)**, with `#374141` / `#999F9F` as panel and border steps and `#F8F3E6`
+(OFF-WHITE) as body text; and **the guide specifies only four chromatic hues against six dominions**,
+so the `FACTION_COLORS` re-map below has no answer in the guide and needs Harvey. Note also that no
+PDF tooling is installed here, so the PDF cannot be read visually without
+`sudo apt-get install -y poppler-utils`.
 
 **Goal:** the web tool uses the brand palette on an off-black ground.
 
