@@ -237,24 +237,29 @@ the injected script because it keeps models self-describing for later tools, and
 rule change then needs no re-injection of 200 models. `GMNotes` stays the plain ID. Note the deck
 writes the class in **upper case** (`MINION`), so the comparison is case-insensitive.
 
-**Diagnosis of "every health tracker reads 6" (Harvey, TTS, 2026-09-15): not a bug, and not the
-4-card failure predicted.** The tracker code was correct and the two copies were byte-identical.
-`DEFAULT_HEALTH = 6` is simply what every non-Minion gets, and `Driplet`/`Huskling` — the only two
-cards the old `MIN` parsing classified correctly — are spawned *only* for dominions Iro-Si-Khar and
-Ahèserec (`TTS_Loader.lua:503,559`). A roster from any other dominion spawns no minion models at all,
-so every model on the table was a legitimate 6. There was no unknown mechanism and no bad injection.
+**"Every health tracker reads 6" (Harvey, TTS, 2026-09-15) — cause: the models carried no class.**
+Two earlier explanations were both wrong and are recorded so they are not retried. (a) The predicted
+"only 4 cards fail" was wrong — Harvey confirms *every* minion read 6, including `Driplet` and
+`Huskling`, which the old `MIN` parsing should have got right. (b) A later guess that minions simply
+had not spawned (because `Driplet`/`Huskling` only appear for Iro-Si-Khar and Ahèserec,
+`TTS_Loader.lua:503,559`) was also wrong — Harvey confirms minions did load.
+
+The real mechanism is that the model has no class on it at all: before Chunk 5 the injector
+**blanked** each model's `Description` and the tracker parsed the ID instead, so anything the ID
+parse missed fell back to `DEFAULT_HEALTH = 6`. Chunk 5 stamps the class on and reads it from there.
+**That requires both a re-imported Cast deck (so cards carry the class) and a re-injection (so models
+carry it) before any minion reads 2.** `checkClassCoverage()` in `Model_ID_Injector.lua` now warns
+loudly when the deck is stale, because this failure is otherwise completely silent.
+
 Also found and removed: `CLASS_CODES` mapped `CMP`, but champions actually use `CHP`, so that entry
 never matched anything in the deck's history.
 
-> **OPEN — for Harvey. The `Fortitude` column looks like the real per-card health, and the
-> `Minion -> 2, everything else -> 6` rule does not reproduce it.** In `M3_TTS_DB - Cast.csv`,
-> `Fortitude` is 6 for Flint Dross, 8 for Ignatius Krag, 8 for The Kovarine; **all six MINION cards
-> are 3, not 2**; and across the 80 champion/familiar/talisman cards it ranges 3–8 with only 22
-> actually equal to 6. So after this chunk 194 of 200 models still start at a flat 6. The decided
-> rule was implemented as specified and all four of Chunk 5's test cases pass — but if `Fortitude` is
-> meant to be starting health, the fix is to carry it the same way the class now rides along
-> (injector reads the deck card, stamps the model) and have `resolveDefaultHealth()` read it. That is
-> a small, contained follow-up: one extra field through `nameToCard` and one function body.
+**`Fortitude` is NOT health — settled by Harvey, 2026-09-15.** `Fortitude` is a character's
+**defense** and `Prowess` is its **strength**; an attack compares strength against defense, which is
+what lets starting health be normalised to a flat value. So `Minion -> 2, everything else -> 6` is
+the intended rule, not an approximation of a per-card number. **Do not "improve" this by reading
+`Fortitude` (or `Prowess`) into the health tracker** — a previous session proposed exactly that from
+the CSV alone and was wrong. Neither stat is hit points.
 
 ### 3.3 Index-keyed image mappings will scramble
 

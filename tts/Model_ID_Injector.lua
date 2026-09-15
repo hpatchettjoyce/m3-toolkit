@@ -14,6 +14,16 @@
      6. Once complete, you can right-click and save the Bag as a customized game component!
 --]]
 
+-- The classes the deck is expected to carry in each card's Description (written by
+-- generate_card_images.py). Used only to warn when a deck looks stale -- see checkClassCoverage().
+KNOWN_CLASSES = {
+    ["CHAMPION"] = true,
+    ["FAMILIAR"] = true,
+    ["MINION"] = true,
+    ["TALISMAN"] = true,
+    ["SPECIAL ACTION"] = true
+}
+
 -- =============== CONFIGURATION GUIDs (REQUIRED) ===============
 CHARACTERS_ZONE_GUID = "83f62b"  -- Zone containing the Cast Deck (same physical zone as before)
 MODELS_BAG_ZONE_GUID = "fe2114"  -- Zone containing the Raw Models Bag
@@ -148,6 +158,11 @@ function injectIdsCoroutine()
         end
     end
     
+    -- Warn loudly if the deck is not carrying class names. This is the failure that silently
+    -- produces "every model has 6 health": an old deck's Description holds prowess/fortitude prose,
+    -- gets stamped onto the model, never equals "MINION", and every minion falls back to 6.
+    checkClassCoverage(itemsToProcess)
+    
     if #itemsToProcess == 0 then
         broadcastToAll("No matching models found in the bag that correspond to cards in the Characters Deck.", {1, 0.5, 0})
         isProcessing = false
@@ -191,6 +206,36 @@ function injectIdsCoroutine()
     broadcastToAll("Success: " .. #itemsToProcess .. " models successfully updated! Re-named to clean names, stamped with their card class, injected with Database IDs, and loaded with the Floating Health Tracker script. Please save the updated Bag.", {0.1, 0.9, 0.1})
     isProcessing = false
     return 1
+end
+
+-- Reports how many matched cards carry a usable class in their Description. A deck that has not
+-- been re-imported since the class was added will score zero here, which is the single most likely
+-- cause of every model defaulting to 6 health.
+function checkClassCoverage(items)
+    local missing = 0
+    local minions = 0
+    local samples = {}
+    for _, item in ipairs(items) do
+        local class = item.class
+        if class == nil or class == "" or not KNOWN_CLASSES[string.upper(class)] then
+            missing = missing + 1
+            if #samples < 3 then
+                table.insert(samples, item.cleanName .. " -> " .. tostring(class))
+            end
+        elseif string.upper(class) == "MINION" then
+            minions = minions + 1
+        end
+    end
+    
+    if missing > 0 then
+        broadcastToAll("WARNING: " .. missing .. " of " .. #items .. " cards carry no recognisable class in their Description. Those models will default to 6 health. Re-import the Cast deck.", {1, 0.3, 0.3})
+        print("Class check FAILED for " .. missing .. " of " .. #items .. " cards. Examples (card -> Description):")
+        for _, sample in ipairs(samples) do
+            print("  - " .. sample)
+        end
+    else
+        print("Class check passed: all " .. #items .. " matched cards carry a known class (" .. minions .. " Minion).")
+    end
 end
 
 -- Helper: Retrieve Object from Trigger Zone
@@ -246,9 +291,16 @@ OBJECT_TYPE = "auto"
 -- The deck writes the class in upper case ("MINION"), so compare case-insensitively.
 MINION_CLASS = "MINION"
 
+-- Height of the floating panel above the model, shared by BOTH shapes so the dials read at one
+-- uniform level across the table. Tokens lie flat and standees stand upright, but the panel is
+-- positioned in the object's local space along -Z, which is "up" for both -- so the same value
+-- gives the same height. Tokens drifted to -175 in 31d8ebf (2026-07-27), which is what made their
+-- dial sit lower than the standees'. Change this ONE value to raise or lower every dial together.
+UI_HEIGHT_OFFSET = "0 0 -300"   -- -300 corresponds to 3.0 world units above the model
+
 -- 1. CONFIGURATION FOR CUSTOM TILES (Lying flat on the table)
 TILE_CONFIG = {
-    position     = "0 0 -175",       -- XML coordinates: Negative Z moves the UI "up" above the tile's face. -125 corresponds to 1.25 world units.
+    position     = UI_HEIGHT_OFFSET,
     rotation     = "0 0 180",         -- Lying flat parallel to the tile's face
     scale        = "1.0 1.0 1.0",   -- Crisp 1.0 scale as preferred by the user
     width        = "320",           -- Resolution width (pixel space)
@@ -258,7 +310,7 @@ TILE_CONFIG = {
 -- 2. CONFIGURATION FOR CUSTOM STANDEES (Upright 3D models/figures)
 -- Lays flat horizontally above the head, making it fully readable to players sitting at any angle around the table.
 STANDEE_CONFIG = {
-    position     = "0 0 -300",      -- XML coordinates: Negative Z moves the UI "up" above the head. -300 corresponds to 3.0 world units.
+    position     = UI_HEIGHT_OFFSET,
     rotation     = "0 0 180",         -- Lying flat horizontally parallel to the table
     scale        = "1.0 1.0 1.0",   -- Crisp 1.0 scale
     width        = "320",           -- Resolution width

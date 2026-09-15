@@ -35,9 +35,16 @@ OBJECT_TYPE = "auto"
 -- The deck writes the class in upper case ("MINION"), so compare case-insensitively.
 MINION_CLASS = "MINION"
 
+-- Height of the floating panel above the model, shared by BOTH shapes so the dials read at one
+-- uniform level across the table. Tokens lie flat and standees stand upright, but the panel is
+-- positioned in the object's local space along -Z, which is "up" for both -- so the same value
+-- gives the same height. Tokens drifted to -175 in 31d8ebf (2026-07-27), which is what made their
+-- dial sit lower than the standees'. Change this ONE value to raise or lower every dial together.
+UI_HEIGHT_OFFSET = "0 0 -300"   -- -300 corresponds to 3.0 world units above the model
+
 -- 1. CONFIGURATION FOR CUSTOM TILES (Lying flat on the table)
 TILE_CONFIG = {
-    position     = "0 0 -175",       -- XML coordinates: Negative Z moves the UI "up" above the tile's face. -125 corresponds to 1.25 world units.
+    position     = UI_HEIGHT_OFFSET,
     rotation     = "0 0 180",         -- Lying flat parallel to the tile's face
     scale        = "1.0 1.0 1.0",   -- Crisp 1.0 scale as preferred by the user
     width        = "320",           -- Resolution width (pixel space)
@@ -47,7 +54,7 @@ TILE_CONFIG = {
 -- 2. CONFIGURATION FOR CUSTOM STANDEES (Upright 3D models/figures)
 -- Lays flat horizontally above the head, making it fully readable to players sitting at any angle around the table.
 STANDEE_CONFIG = {
-    position     = "0 0 -300",      -- XML coordinates: Negative Z moves the UI "up" above the head. -300 corresponds to 3.0 world units.
+    position     = UI_HEIGHT_OFFSET,
     rotation     = "0 0 180",         -- Lying flat horizontally parallel to the table
     scale        = "1.0 1.0 1.0",   -- Crisp 1.0 scale
     width        = "320",           -- Resolution width
