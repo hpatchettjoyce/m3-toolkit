@@ -580,7 +580,7 @@ card art still loads.
 **Done 2026-09-15 (code; browser test outstanding).** `getCardDatabase()` is a rewrite, not a patch.
 `CHAR_SHEET_NAME`/`SP_SHEET_NAME` collapse to `CAST_SHEET_NAME = "Cast"`; `MATCH_SHEET_NAME` is
 untouched. Verified by running the real function over the real 200-row CSV in a Node harness with
-`SpreadsheetApp` stubbed — 30 assertions, all passing, **zero warnings**:
+`SpreadsheetApp` stubbed — 29 assertions, all passing, **zero warnings**:
 
 - **200 cards** — 12 champions, 86 units (68 Familiar + 6 Minion + 12 Talisman), 102 specials, 6
   dominions. Class census matches §2.3 exactly, in **Title Case** (`SPECIAL ACTION` -> `Special
@@ -607,21 +607,24 @@ untouched. Verified by running the real function over the real 200-row CSV in a 
 - **Soft degradation preserved**: an unresolvable `Role Details` warns and leaves `tiedChampionId`
   null rather than throwing, and a missing `CardImages.gs` still builds all 200 cards with
   `image: null`.
+- **Print card renders clean.** All 200 composed `effect` strings pushed through the real
+  `formatRulesText()` + `escapeHtml()` lifted out of `CastRecruiter.html`: no `{`, `}`, `*` or raw
+  `{M3/Icons/` survives, and the 37 icon-token cards render as `[SQUARE]` and friends.
 - `validate_cast.py` still passes clean (exit 0).
 
-**Two things this chunk surfaced, both for Harvey, neither a code bug:**
+**Two things this chunk surfaced, neither a code bug. The second is now fixed:**
 
 1. **`role` now carries `COMPANION`/`SIGNATURE`, not the old prose** (`"Flint Dross's Loyal
    Companion"`). The print card's subheader is `[dominion, role].join(" • ")`
    (`CastRecruiter.html:1417`), so it reads **"Rhavlika • COMPANION"**. The prose is still available
    — the champion's name is passed through as the new `roleDetails` field — but nothing renders it.
-2. **7 cards have unbalanced asterisks in `Effect Details 1`**, so a literal `*` survives
-   `formatRulesText()` on the print card. **Pre-existing sheet data, not introduced here** — the same
-   text renders the same way on the Dextrous card faces. Fixes are in the Google Sheet:
-   `***MANOEUVRE` -> `**MANOEUVRE` on **Lu'ann** (row 74), **Dart** (85), **Flee** (96) and
-   **"Charge the flanks!"** (125); `*ADVANTAGE**` -> `**ADVANTAGE**` on **Breach** (193);
-   `*emergence"` -> `*emergence*` on **Displacement** (196); `**SLOWED*` -> `**SLOWED**` on **Veros'
-   Breath** (199).
+2. ~~**7 cards have unbalanced asterisks in `Effect Details 1`**~~ — **fixed by Harvey in the sheet
+   on 2026-09-15 and re-exported.** `***MANOEUVRE` -> `**MANOEUVRE` on Lu'ann, Dart, Flee and
+   "Charge the flanks!"; `*ADVANTAGE**` -> `**ADVANTAGE**` on Breach; `*emergence"` -> `*emergence*`
+   on Displacement; `**SLOWED*` -> `**SLOWED**` on Veros' Breath. The CSV diff was exactly those 7
+   rows and nothing else, and the print card now renders with **zero** stray asterisks. **The card
+   *art* still carries the old rendering** until Dextrous re-renders and the deck is re-exported —
+   the fix is in the sheet, not in the images.
 
 ---
 

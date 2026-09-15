@@ -6,7 +6,7 @@ Web app for building and validating game rosters ("casts") for the tabletop game
 
 - Backend: Google Apps Script (`.gs` files run in a single shared global namespace — no per-file scoping).
 - Frontend: single-file vanilla SPA (`webapp/CastRecruiter.html`) — HTML + CSS custom properties + vanilla ES6 JS. No frameworks (React/Vue) or CSS libraries unless explicitly requested.
-- Sync: [`clasp`](https://github.com/google/clasp) for local development, since GAS doesn't run locally (`webapp/.clasp.json`, `webapp/appsscript.json`).
+- Sync: [`clasp`](https://github.com/google/clasp) v3 for local development, since GAS doesn't run locally (`webapp/.clasp.json`, `webapp/appsscript.json`). **`.clasp.json` lists `.js` in `scriptExtensions`, so any `.js` file under `webapp/` is pushed into the flat GAS namespace** — keep test harnesses outside `webapp/`.
 
 ## Architecture
 
@@ -46,4 +46,9 @@ Expected `getCardDatabase()` schema:
 
 1. Open the bound Google Spreadsheet → **Extensions > Apps Script**.
 2. Copy the contents of `webapp/*.gs` and `webapp/CastRecruiter.html` into the Apps Script editor (or `clasp push` from `webapp/`).
-3. **Deploy > New deployment > Web app**, execute as Me, access "Anyone".
+3. **Redeploy without changing the public URL** — `clasp deploy -i <deploymentId>` repoints the
+   existing deployment at a new version. The live deployment is
+   `AKfycbzJ_rRo1MT81RSvWaqHqFvRzJ9utCt0stRyWUT6TguOIscMNviKVxogu8qwfqyxaBbT`; `clasp list-deployments`
+   confirms it. **A plain `clasp deploy` (or Deploy > New deployment) mints a new deployment with a
+   new `/exec` URL** — only do that if a new URL is actually wanted. The separate `@HEAD` deployment
+   serves the `/dev` URL, which always runs the latest `clasp push` and needs no deploy step.
