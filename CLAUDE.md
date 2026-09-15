@@ -12,21 +12,23 @@ Web app for building and validating game rosters ("casts") for the tabletop game
 
 - `webapp/main.gs` — primary entry point: `doGet(e)` routes the Web App, `doPost(e)` receives webhooks (e.g. from Tabletop Simulator), and defines `getCardDatabase()` — the single source of card data for the frontend.
 - `webapp/CastRecruiter.html` — the frontend SPA: layout, styling, state, validation, JSON export.
-- `webapp/CardImages.gs` — card image handling.
+- `webapp/CardImages.gs` — **generated** card art map, keyed by card ID. Never hand-edit it; re-run `dextrous/generate_card_images.py`.
 
 Data flow: the frontend loads via `doGet` → `HtmlService.createHtmlOutputFromFile('CastRecruiter')`, then asynchronously calls `google.script.run.withSuccessHandler(...).withFailureHandler(...).getCardDatabase()`.
 
-Backend data source: the active spreadsheet's `IN Cha-Tal` tab (Champion/Familiar/Minion/Talisman cards) and `IN SP` tab (Special Action cards).
+Backend data source: the active spreadsheet's single `Cast` tab — all 200 cards (Champion, Familiar, Minion, Talisman, Special Action). The old `IN Cha-Tal` / `IN SP` pair is gone. Classes are stored in all caps and normalised to Title Case at the parse boundary.
 
 Expected `getCardDatabase()` schema:
 ```json
 {
-  "dominions": ["Rhavlika", "Iro-Si-Khar", "Voisira", ...],
-  "champions": [{ "id": "champ_0", "name": "Flint Dross", "dominion": "Rhavlika" }],
-  "units": [{ "id": "unit_1", "name": "Obduron", "dominion": "Rhavlika", "class": "Familiar", "cost": 6, "isLoyal": true, "tiedChampionId": "champ_0" }],
-  "specials": [{ "id": "sp_0", "name": "Thermal Venting", "dominion": "Rhavlika", "cost": 0, "isSignature": false, "tiedChampionId": null }]
+  "dominions": ["Rhavlika", "Iro-Si-Khar", "Voisira", "..."],
+  "champions": [{ "id": "01RHA-01CHP-0001", "uniqueId": "01RHA-01CHP-0001", "name": "Flint Dross", "dominion": "Rhavlika", "class": "Champion", "effect": "NAME | TYPE\ndetails...", "image": { "url": "...", "cols": 8, "rows": 6, "idx": 0 } }],
+  "units": [{ "id": "01RHA-03FAM-0012", "name": "Caldrack", "class": "Familiar", "cost": 6, "isLoyal": true, "tiedChampionId": "01RHA-01CHP-0001" }],
+  "specials": [{ "id": "01RHA-07SPA-0020", "name": "Thermal Venting", "cost": 0, "isSignature": false, "tiedChampionId": null }]
 }
 ```
+
+`id` is the card ID (`01RHA-01CHP-0001`), not a positional `champ_0`, and `tiedChampionId` uses the same key space so frontend link comparisons work. Art is looked up by card ID against `getCardImageMappings().cards`. `normaliseName()` in `main.gs` is the twin of `normalise_name()` in `dextrous/validate_cast.py` — **change both or neither**.
 
 ## Conventions & gotchas
 
@@ -38,7 +40,7 @@ Expected `getCardDatabase()` schema:
 
 - `dextrous/` — card data JSON exports and `generate_card_images.py` for producing card art.
 - `tts/` — Lua scripts for the Tabletop Simulator integration (loader, trackers, deploy scripts).
-- `*.csv` at repo root — raw card data pulled from the Google Sheet tabs described above.
+- `M3_TTS_DB - Cast.csv` at repo root — raw card data pulled from the `Cast` tab described above.
 
 ## Deployment
 

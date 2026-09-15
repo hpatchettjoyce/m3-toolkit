@@ -1,10 +1,11 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunks 0 and 1 done — Chunk 2 is next. The validator **passes clean** on the current
-data, and the compiler emits an ID-keyed `CardImages.gs` with all 200 cards. Note `main.gs` still
-reads the old positional `imageMappings.characters[index]`, so the browser view falls back to
-default styling until Chunk 2 switches it to the `cards` map — expected, not a regression.
+**Status:** Chunks 0, 1 and 2 done — Chunk 4 is next (Chunk 3 is withdrawn, D11). The validator
+**passes clean** on the current data, the compiler emits an ID-keyed `CardImages.gs` with all 200
+cards, and `main.gs` now serves all 200 from the single `Cast` tab with art looked up by card ID.
+**Not yet run in Apps Script:** Chunk 2 is verified against the real CSV through a Node harness, but
+`clasp push` and the browser test are still outstanding.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -575,6 +576,52 @@ card art still loads.
 
 **Done when:** all 6 dominions build a legal cast end to end, the 6 companion/signature links from
 §3.1 resolve, and print preview still produces readable cards.
+
+**Done 2026-09-15 (code; browser test outstanding).** `getCardDatabase()` is a rewrite, not a patch.
+`CHAR_SHEET_NAME`/`SP_SHEET_NAME` collapse to `CAST_SHEET_NAME = "Cast"`; `MATCH_SHEET_NAME` is
+untouched. Verified by running the real function over the real 200-row CSV in a Node harness with
+`SpreadsheetApp` stubbed — 30 assertions, all passing, **zero warnings**:
+
+- **200 cards** — 12 champions, 86 units (68 Familiar + 6 Minion + 12 Talisman), 102 specials, 6
+  dominions. Class census matches §2.3 exactly, in **Title Case** (`SPECIAL ACTION` -> `Special
+  Action`) so the frontend's `class === 'Minion'` / `'Talisman'` comparisons keep working unchanged.
+- **All 24 champion links resolve** — 12 loyal companions, 12 signature actions, every
+  `tiedChampionId` pointing at a real champion's **card ID**. `id` is the card ID now, not
+  `champ_<index>`, and `uniqueId` carries the same value so the roster import/export paths are
+  unchanged.
+- **`normaliseName()` is a direct port of `normalise_name()`** (`dextrous/validate_cast.py`), not a
+  re-reading of §3.1. Checked against the Python original over **215 inputs — zero drift**, the
+  `ø đ ł ß œ` cases included. It is load-bearing: a naive exact match fails on exactly the 5 §3.1
+  cards (Pelazhiqi, Ryuztli, Kibantli, Opolkan, Egunghi). Matching is scoped within the dominion.
+- **All 200 cards resolve art** from `getCardImageMappings().cards[cardId]`, every entry carrying a
+  well-formed `url`/`cols`/`rows`/`idx` and no `{verifycache}` prefix. This is what restores card art
+  in the browser view.
+- **The composed `effect` string** is the contract (D11): 84 cards emit a `NAME | TYPE` header, the
+  113 with details but no name/type **omit the header line** rather than emitting a stray ` | `, and
+  all 7 second effects are present.
+- **`Driplet` and `Huskling` still cost 0**, so the frontend's `cost > 0` guard keeps them out of the
+  recruitable basics list — confirmed, not changed.
+- **Teeth proven on in-memory copies**, each throwing and naming the sheet row: a renamed/missing
+  required column, a duplicate ID, a blank ID, a blank `Class`, an unrecognised `Class`, a
+  header-only tab, and a missing `Cast` tab. Trailing blank rows are skipped rather than fatal.
+- **Soft degradation preserved**: an unresolvable `Role Details` warns and leaves `tiedChampionId`
+  null rather than throwing, and a missing `CardImages.gs` still builds all 200 cards with
+  `image: null`.
+- `validate_cast.py` still passes clean (exit 0).
+
+**Two things this chunk surfaced, both for Harvey, neither a code bug:**
+
+1. **`role` now carries `COMPANION`/`SIGNATURE`, not the old prose** (`"Flint Dross's Loyal
+   Companion"`). The print card's subheader is `[dominion, role].join(" • ")`
+   (`CastRecruiter.html:1417`), so it reads **"Rhavlika • COMPANION"**. The prose is still available
+   — the champion's name is passed through as the new `roleDetails` field — but nothing renders it.
+2. **7 cards have unbalanced asterisks in `Effect Details 1`**, so a literal `*` survives
+   `formatRulesText()` on the print card. **Pre-existing sheet data, not introduced here** — the same
+   text renders the same way on the Dextrous card faces. Fixes are in the Google Sheet:
+   `***MANOEUVRE` -> `**MANOEUVRE` on **Lu'ann** (row 74), **Dart** (85), **Flee** (96) and
+   **"Charge the flanks!"** (125); `*ADVANTAGE**` -> `**ADVANTAGE**` on **Breach** (193);
+   `*emergence"` -> `*emergence*` on **Displacement** (196); `**SLOWED*` -> `**SLOWED**` on **Veros'
+   Breath** (199).
 
 ---
 

@@ -6,8 +6,7 @@
 
 // Global Sheet configuration names
 var MATCH_SHEET_NAME = "IN TTS";
-var CHAR_SHEET_NAME = "IN Cha-Tal";
-var SP_SHEET_NAME = "IN SP";
+var CAST_SHEET_NAME = "Cast";
 
 /**
  * Serves the HTML frontend interface to clients.
@@ -167,22 +166,200 @@ function parseFormUrlEncoded(rawString) {
 }
 
 /**
- * Compiles and returns character and special database objects, merged with image coordinates.
+/**
+ * Fold a champion name to its comparison form.
+ *
+ * This is the JavaScript twin of `normalise_name()` in `dextrous/validate_cast.py`
+ * — the two MUST stay in step. `Role Details` carries a Dextrous-safe spelling of
+ * the champion's name (no commas, no `ae` ligature), so both sides need folding
+ * before they can match. A plain string compare resolves 19 of the 24 links and
+ * silently drops the other 5. See UPGRADE_PLAN.md §3.1.
+ *
+ *   1. NFKD-decompose and drop combining marks, then map the ligatures NFKD
+ *      leaves alone.
+ *   2. Strip commas, apostrophes and periods.
+ *   3. Collapse runs of whitespace, trim, lower-case.
+ */
+var NAME_LIGATURES = {
+  "æ": "ae", "Æ": "ae",
+  "œ": "oe", "Œ": "oe",
+  "ß": "ss",
+  "ø": "o", "Ø": "o",
+  "đ": "d", "Đ": "d",
+  "ł": "l", "Ł": "l"
+};
+
+var NAME_STRIPPED_PUNCTUATION = ",'’‘`.´";
+
+function normaliseName(value) {
+  var text = String(value === null || value === undefined ? "" : value).normalize("NFKD");
+  text = text.replace(/\p{M}/gu, "");
+
+  var folded = "";
+  for (var i = 0; i < text.length; i++) {
+    var ch = text.charAt(i);
+    if (NAME_STRIPPED_PUNCTUATION.indexOf(ch) !== -1) continue;
+    folded += NAME_LIGATURES.hasOwnProperty(ch) ? NAME_LIGATURES[ch] : ch;
+  }
+
+  return folded.split(/\s+/).filter(function (part) { return part.length > 0; }).join(" ").toLowerCase();
+}
+
+/**
+ * `CHAMPION` -> `Champion`, `SPECIAL ACTION` -> `Special Action`.
+ *
+ * The Cast sheet holds classes in all caps; the frontend and the TTS-facing
+ * contract both compare against Title Case. Normalising once here is far lower
+ * risk than changing every comparison in CastRecruiter.html (UPGRADE_PLAN.md,
+ * Chunk 2).
+ */
+function toTitleCaseClass(value) {
+  return String(value || "").toLowerCase().replace(/\S+/g, function (word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+}
+
+/**
+ * Build the legacy single `effect` string from the split effect columns.
+ *
+ * This string is the contract now, not a bridge (D11): the print card renders
+ * `formatRulesText(card.effect)` and nothing else, so anything that must reach
+ * paper has to be in here. Name and type join with " | "; details go on the next
+ * line; a second effect follows on the next line again. Where a card has details
+ * but no name/type (113 of 200) the header line is omitted rather than emitting
+ * a stray " | ". See UPGRADE_PLAN.md §3.4.
+ */
+function composeEffectText(effects) {
+  var lines = [];
+  effects.forEach(function (effect) {
+    var header = [effect.name, effect.type].filter(function (part) { return part; }).join(" | ");
+    if (header) lines.push(header);
+    if (effect.details) lines.push(effect.details);
+  });
+  return lines.join("\n");
+}
+
+// Columns the app actually reads. A missing one is a hard error rather than a
+// silent blank: reading a column that isn't there is exactly the bug that made
+// the pre-D7 "Name (str)" / "ID (str)" lookups fail without a word.
+var CAST_REQUIRED_COLUMNS = [
+  "Name", "Dominion", "Class", "Role", "Role Details", "ID",
+  "Effect Name 1", "Effect Type 1", "Effect Details 1",
+  "Effect Name 2", "Effect Type 2", "Effect Details 2",
+  "Ether", "Prowess", "Fortitude"
+];
+
+// Passed through for whoever wants them later; nothing consumes these today, so
+// a missing one degrades to "" with a warning instead of taking the app down.
+var CAST_OPTIONAL_COLUMNS = ["Keywords", "Artwork", "Flavour"];
+
+var CAST_UNIT_CLASSES = { "Familiar": true, "Minion": true, "Talisman": true };
+
+/**
+ * Compiles and returns the champion / unit / special database from the single
+ * `Cast` tab, merged with card art looked up by card ID.
  */
 function getCardDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var charSheet = ss.getSheetByName(CHAR_SHEET_NAME);
-  var spSheet = ss.getSheetByName(SP_SHEET_NAME);
+  var castSheet = ss.getSheetByName(CAST_SHEET_NAME);
 
-  if (!charSheet || !spSheet) {
-    throw new Error("Missing required source spreadsheet tabs.");
+  if (!castSheet) {
+    throw new Error('Missing required source spreadsheet tab "' + CAST_SHEET_NAME + '".');
   }
 
-  var imageMappings = {};
+  var imageMappings = null;
   try {
     imageMappings = getCardImageMappings();
   } catch (err) {
-    console.warn("getCardImageMappings is undefined. Falling back to default styling: " + err.message);
+    console.warn("getCardImageMappings is unavailable. Falling back to default styling: " + err.message);
+  }
+  var artByCardId = (imageMappings && imageMappings.cards) ? imageMappings.cards : {};
+
+  var data = castSheet.getDataRange().getValues();
+  if (data.length < 2) {
+    throw new Error('The "' + CAST_SHEET_NAME + '" tab has a header but no card rows.');
+  }
+
+  var headerMap = {};
+  data[0].forEach(function (header, idx) {
+    var key = String(header).trim();
+    if (key && !headerMap.hasOwnProperty(key)) headerMap[key] = idx;
+  });
+
+  var missing = CAST_REQUIRED_COLUMNS.filter(function (column) {
+    return !headerMap.hasOwnProperty(column);
+  });
+  if (missing.length) {
+    throw new Error('The "' + CAST_SHEET_NAME + '" tab is missing required column(s): ' +
+        missing.join(", ") + ". Re-export the sheet rather than serving blank values.");
+  }
+  CAST_OPTIONAL_COLUMNS.forEach(function (column) {
+    if (!headerMap.hasOwnProperty(column)) {
+      console.warn('Optional column "' + column + '" is absent; it will be served as "".');
+    }
+  });
+
+  var cell = function (row, column) {
+    var idx = headerMap.hasOwnProperty(column) ? headerMap[column] : -1;
+    return idx === -1 ? "" : String(row[idx]).trim();
+  };
+
+  // --- Pass 0: read and validate every row once -----------------------------
+  var records = [];
+  var seenIds = {};
+
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    var sheetRow = r + 1; // 1-based, matching what the user sees in the sheet
+    var name = cell(row, "Name");
+    var dominion = cell(row, "Dominion");
+    var rawClass = cell(row, "Class");
+    var cardId = cell(row, "ID");
+
+    // A wholly empty row is trailing slack in the sheet, not a broken card.
+    if (!name && !dominion && !rawClass && !cardId) continue;
+
+    if (!name || !dominion || !rawClass || !cardId) {
+      throw new Error('Cast row ' + sheetRow + ': every card needs Name, Dominion, Class and ID ' +
+          '(got name="' + name + '", dominion="' + dominion + '", class="' + rawClass +
+          '", id="' + cardId + '").');
+    }
+    if (seenIds.hasOwnProperty(cardId)) {
+      throw new Error('Cast row ' + sheetRow + ': duplicate ID "' + cardId +
+          '", already used on row ' + seenIds[cardId] + '.');
+    }
+    seenIds[cardId] = sheetRow;
+
+    var unitClass = toTitleCaseClass(rawClass);
+    if (unitClass !== "Champion" && unitClass !== "Special Action" &&
+        !CAST_UNIT_CLASSES.hasOwnProperty(unitClass)) {
+      throw new Error('Cast row ' + sheetRow + ' ("' + name + '"): unrecognised Class "' +
+          rawClass + '".');
+    }
+
+    records.push({
+      sheetRow: sheetRow,
+      id: cardId,
+      name: name,
+      dominion: dominion,
+      unitClass: unitClass,
+      role: cell(row, "Role").toUpperCase(),
+      roleDetails: cell(row, "Role Details"),
+      // parseInt("") is NaN, so blank Ether stays 0 and keeps Driplet and
+      // Huskling out of the recruitable basics list (frontend `cost > 0`).
+      cost: parseInt(cell(row, "Ether"), 10) || 0,
+      prowess: cell(row, "Prowess"),
+      fortitude: cell(row, "Fortitude"),
+      effect1Name: cell(row, "Effect Name 1"),
+      effect1Type: cell(row, "Effect Type 1"),
+      effect1Details: cell(row, "Effect Details 1"),
+      effect2Name: cell(row, "Effect Name 2"),
+      effect2Type: cell(row, "Effect Type 2"),
+      effect2Details: cell(row, "Effect Details 2"),
+      keywords: cell(row, "Keywords"),
+      flavourText: cell(row, "Flavour"),
+      artwork: cell(row, "Artwork")
+    });
   }
 
   var db = {
@@ -192,204 +369,110 @@ function getCardDatabase() {
     specials: []
   };
 
-  var uniqueDominions = new Set();
-  var championNameToId = {};
-
-  var getHeaderMap = function(headers) {
-    var map = {};
-    headers.forEach(function(h, idx) { map[h.trim()] = idx; });
-    return map;
-  };
-
-  var findColumnIndex = function(map, keys) {
-    for (var i = 0; i < keys.length; i++) {
-      if (map.hasOwnProperty(keys[i])) return map[keys[i]];
+  var seenDominions = {};
+  records.forEach(function (record) {
+    if (!seenDominions.hasOwnProperty(record.dominion)) {
+      seenDominions[record.dominion] = true;
+      db.dominions.push(record.dominion);
     }
-    return -1;
+  });
+
+  // Champion links are scoped within the dominion — every dominion has exactly
+  // two champions, so a normalised collision is very unlikely, but scoping it
+  // costs nothing (UPGRADE_PLAN.md §3.1).
+  var championKey = function (dominion, name) {
+    return normaliseName(dominion) + "|" + normaliseName(name);
   };
 
-  // --- Parse Characters & Talismans ---
-  var charData = charSheet.getDataRange().getValues();
-  if (charData.length > 1) {
-    var charHeaders = charData[0];
-    var charRows = charData.slice(1);
-    var charHeaderMap = getHeaderMap(charHeaders);
+  var championIdByKey = {};
 
-    var nameIdx = findColumnIndex(charHeaderMap, ["Name (str)", "Name"]);
-    var domIdx = findColumnIndex(charHeaderMap, ["Dominion (str)", "Dominion"]);
-    var classIdx = findColumnIndex(charHeaderMap, ["Class (str)", "Class"]);
-    var roleIdx = findColumnIndex(charHeaderMap, ["Role (str)", "Role"]);
-    var etherIdx = findColumnIndex(charHeaderMap, ["Ether (int)", "Ether (Cost)", "Ether", "Cost"]);
-    var idIdx = findColumnIndex(charHeaderMap, ["ID (str)", "ID"]);
-    var effectIdx = findColumnIndex(charHeaderMap, ["Effect (str)", "Effect"]);
-    var prowessIdx = findColumnIndex(charHeaderMap, ["Prowess (int)", "Prowess"]);
-    var fortitudeIdx = findColumnIndex(charHeaderMap, ["Fortitude (int)", "Fortitude"]);
+  // Every card carries the same core shape; `id` is the card ID now, not
+  // `champ_<index>`, so `tiedChampionId` and `state.champion` share one key
+  // space. `uniqueId` stays populated so the roster import/export paths keep
+  // working unchanged.
+  var baseCard = function (record) {
+    return {
+      id: record.id,
+      uniqueId: record.id,
+      name: record.name,
+      dominion: record.dominion,
+      class: record.unitClass,
+      role: record.role,
+      roleDetails: record.roleDetails,
+      cost: record.cost,
+      effect: composeEffectText([
+        { name: record.effect1Name, type: record.effect1Type, details: record.effect1Details },
+        { name: record.effect2Name, type: record.effect2Type, details: record.effect2Details }
+      ]),
+      effect1Name: record.effect1Name,
+      effect1Type: record.effect1Type,
+      effect1Details: record.effect1Details,
+      effect2Name: record.effect2Name,
+      effect2Type: record.effect2Type,
+      effect2Details: record.effect2Details,
+      keywords: record.keywords,
+      flavourText: record.flavourText,
+      artwork: record.artwork,
+      image: artByCardId.hasOwnProperty(record.id) ? artByCardId[record.id] : null
+    };
+  };
 
-    // First Pass: Parse and index Champions
-    charRows.forEach(function(row, index) {
-      if (nameIdx === -1 || domIdx === -1 || classIdx === -1) return;
-      var name = String(row[nameIdx]).trim();
-      var dominion = String(row[domIdx]).trim();
-      var unitClass = String(row[classIdx]).trim();
-      var cardIdVal = idIdx !== -1 ? String(row[idIdx]).trim() : "";
-      if (!cardIdVal && name) {
-        cardIdVal = "SYN-" + name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-      }
-      
-      if (!name || !dominion) return;
-      
-      uniqueDominions.add(dominion);
+  // --- Pass 1: champions, so the links below have something to resolve against
+  records.forEach(function (record) {
+    if (record.unitClass !== "Champion") return;
 
-      if (unitClass === "Champion") {
-        var champId = "champ_" + index;
-        var imageInfo = (imageMappings && imageMappings.characters && imageMappings.characters[index]) ? imageMappings.characters[index] : null;
-        var role = roleIdx !== -1 ? String(row[roleIdx]).trim() : "";
-        var effect = effectIdx !== -1 ? String(row[effectIdx]).trim() : "";
-        var prowess = prowessIdx !== -1 ? String(row[prowessIdx]).trim() : "";
-        var fortitude = fortitudeIdx !== -1 ? String(row[fortitudeIdx]).trim() : "";
-        var cost = etherIdx !== -1 ? (parseInt(row[etherIdx]) || 0) : 0;
+    var champion = baseCard(record);
+    champion.prowess = record.prowess;
+    champion.fortitude = record.fortitude;
+    db.champions.push(champion);
 
-        db.champions.push({
-          id: champId,
-          name: name,
-          dominion: dominion,
-          class: unitClass,
-          role: role,
-          effect: effect,
-          prowess: prowess,
-          fortitude: fortitude,
-          cost: cost,
-          uniqueId: cardIdVal,
-          image: imageInfo
-        });
-        championNameToId[name.toLowerCase()] = champId;
-      }
-    });
+    var key = championKey(record.dominion, record.name);
+    if (championIdByKey.hasOwnProperty(key)) {
+      console.warn('Cast row ' + record.sheetRow + ': two champions in ' + record.dominion +
+          ' normalise to the same name ("' + record.name + '"); the later one wins for links.');
+    }
+    championIdByKey[key] = record.id;
+  });
 
-    // Second Pass: Parse Familiars, Minions, and Talismans
-    charRows.forEach(function(row, index) {
-      if (nameIdx === -1 || domIdx === -1 || classIdx === -1) return;
-      var name = String(row[nameIdx]).trim();
-      var dominion = String(row[domIdx]).trim();
-      var unitClass = String(row[classIdx]).trim();
-      var cost = etherIdx !== -1 ? (parseInt(row[etherIdx]) || 0) : 0;
-      var cardIdVal = idIdx !== -1 ? String(row[idIdx]).trim() : "";
-      if (!cardIdVal && name) {
-        cardIdVal = "SYN-" + name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-      }
-      
-      if (!name || !dominion) return;
-      if (unitClass === "Champion") return; // Already processed
+  // --- Pass 2: everything else ----------------------------------------------
+  var resolveChampion = function (record, expectedRole) {
+    if (!record.roleDetails) {
+      console.warn('Cast row ' + record.sheetRow + ' ("' + record.name + '") is marked ' +
+          expectedRole + ' but has no Role Details, so it links to no champion.');
+      return null;
+    }
+    var key = championKey(record.dominion, record.roleDetails);
+    if (!championIdByKey.hasOwnProperty(key)) {
+      console.warn('Cast row ' + record.sheetRow + ' ("' + record.name + '"): Role Details "' +
+          record.roleDetails + '" matches no champion in ' + record.dominion + '.');
+      return null;
+    }
+    return championIdByKey[key];
+  };
 
-      if (unitClass === "Familiar" || unitClass === "Minion" || unitClass === "Talisman") {
-        var isLoyal = false;
-        var tiedChampId = null;
-        var role = roleIdx !== -1 ? String(row[roleIdx]).trim() : "";
+  records.forEach(function (record) {
+    if (record.unitClass === "Champion") return;
 
-        if (roleIdx !== -1) {
-          if (role) {
-            var match = role.match(/^(.*?)(?:'s|')\s*Loyal Companion$/i);
-            if (match) {
-              isLoyal = true;
-              var champName = match[1].trim();
-              if (championNameToId[champName.toLowerCase()]) {
-                tiedChampId = championNameToId[champName.toLowerCase()];
-              }
-            }
-          }
-        }
+    if (CAST_UNIT_CLASSES.hasOwnProperty(record.unitClass)) {
+      // MINION-class companions belong here too: they are companions that happen
+      // to be minions, and the frontend already handles class === 'Minion' in
+      // its basics filter (UPGRADE_PLAN.md §3.2).
+      var unit = baseCard(record);
+      unit.isLoyal = record.role === "COMPANION";
+      unit.tiedChampionId = unit.isLoyal ? resolveChampion(record, "COMPANION") : null;
+      unit.prowess = record.prowess;
+      unit.fortitude = record.fortitude;
+      db.units.push(unit);
+      return;
+    }
 
-        var imageInfo = (imageMappings && imageMappings.characters && imageMappings.characters[index]) ? imageMappings.characters[index] : null;
-        var effect = effectIdx !== -1 ? String(row[effectIdx]).trim() : "";
-        var prowess = prowessIdx !== -1 ? String(row[prowessIdx]).trim() : "";
-        var fortitude = fortitudeIdx !== -1 ? String(row[fortitudeIdx]).trim() : "";
+    var special = baseCard(record);
+    special.isSignature = record.role === "SIGNATURE";
+    special.tiedChampionId = special.isSignature ? resolveChampion(record, "SIGNATURE") : null;
+    db.specials.push(special);
+  });
 
-        db.units.push({
-          id: "unit_" + index,
-          name: name,
-          dominion: dominion,
-          class: unitClass,
-          cost: cost,
-          isLoyal: isLoyal,
-          tiedChampionId: tiedChampId,
-          uniqueId: cardIdVal,
-          image: imageInfo,
-          role: role,
-          effect: effect,
-          prowess: prowess,
-          fortitude: fortitude
-        });
-      }
-    });
-  }
-
-  db.dominions = Array.from(uniqueDominions);
-
-  // --- Parse Special Actions ---
-  var spData = spSheet.getDataRange().getValues();
-  if (spData.length > 1) {
-    var spHeaders = spData[0];
-    var spRows = spData.slice(1);
-    var spHeaderMap = getHeaderMap(spHeaders);
-
-    var spNameIdx = findColumnIndex(spHeaderMap, ["Name (str)", "Name"]);
-    var spDomIdx = findColumnIndex(spHeaderMap, ["Dominion (str)", "Dominion"]);
-    var spClassIdx = findColumnIndex(spHeaderMap, ["Class (str)", "Class"]);
-    var spRoleIdx = findColumnIndex(spHeaderMap, ["Role (str)", "Role"]);
-    var spEtherIdx = findColumnIndex(spHeaderMap, ["Ether (int)", "Ether (Cost)", "Ether", "Cost"]);
-    var spIdIdx = findColumnIndex(spHeaderMap, ["ID (str)", "ID"]);
-    var spEffectIdx = findColumnIndex(spHeaderMap, ["Effect (str)", "Effect"]);
-
-    spRows.forEach(function(row, index) {
-      if (spNameIdx === -1 || spDomIdx === -1 || spClassIdx === -1) return;
-      var name = String(row[spNameIdx]).trim();
-      var dominion = String(row[spDomIdx]).trim();
-      var unitClass = String(row[spClassIdx]).trim();
-      var cost = spEtherIdx !== -1 ? (parseInt(row[spEtherIdx]) || 0) : 0;
-      var spCardIdVal = spIdIdx !== -1 ? String(row[spIdIdx]).trim() : "";
-      if (!spCardIdVal && name) {
-        spCardIdVal = "SYN-" + name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-      }
-      
-      if (!name || !dominion || unitClass !== "Special Action") return;
-
-      var isSignature = false;
-      var tiedChampId = null;
-      var role = spRoleIdx !== -1 ? String(row[spRoleIdx]).trim() : "";
-
-      if (spRoleIdx !== -1) {
-        if (role) {
-          var match = role.match(/^(.*?)(?:'s|')\s*Signature Action$/i);
-          if (match) {
-            isSignature = true;
-            var champName = match[1].trim();
-            if (championNameToId[champName.toLowerCase()]) {
-              tiedChampId = championNameToId[champName.toLowerCase()];
-            }
-          }
-        }
-      }
-
-      var imageInfo = (imageMappings && imageMappings.specials && imageMappings.specials[index]) ? imageMappings.specials[index] : null;
-      var effect = spEffectIdx !== -1 ? String(row[spEffectIdx]).trim() : "";
-
-      db.specials.push({
-        id: "sp_" + index,
-        name: name,
-        dominion: dominion,
-        class: unitClass,
-        cost: cost,
-        isSignature: isSignature,
-        tiedChampionId: tiedChampId,
-        uniqueId: spCardIdVal,
-        image: imageInfo,
-        role: role,
-        effect: effect
-      });
-    });
-  }
-
-  // This stringify and parse trick strips out any hidden Google Sheet objects 
+  // This stringify and parse trick strips out any hidden Google Sheet objects
   // and guarantees the data is perfectly clean for the web browser.
   return JSON.parse(JSON.stringify(db));
 }
