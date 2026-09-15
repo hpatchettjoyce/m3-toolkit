@@ -1,11 +1,12 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunks 0, 1 and 2 done — Chunk 4 is next (Chunk 3 is withdrawn, D11). The validator
-**passes clean** on the current data, the compiler emits an ID-keyed `CardImages.gs` with all 200
-cards, and `main.gs` now serves all 200 from the single `IN Cast` tab with art looked up by card ID.
-**Not yet run in Apps Script:** Chunk 2 is verified against the real CSV through a Node harness, but
-`clasp push` and the browser test are still outstanding.
+**Status:** Chunks 0, 1 and 2 done and **verified in the browser** — Chunk 4 is next (Chunk 3 is
+withdrawn, D11). The validator passes clean, the compiler emits an ID-keyed `CardImages.gs` with all
+200 cards, and `main.gs` serves all 200 from the single `IN Cast` tab with art looked up by card ID.
+Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
+**Still untested:** roster export / re-import, the path most exposed to the `champ_<index>` -> card-ID
+change.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -577,7 +578,7 @@ card art still loads.
 **Done when:** all 6 dominions build a legal cast end to end, the 6 companion/signature links from
 §3.1 resolve, and print preview still produces readable cards.
 
-**Done 2026-09-15 (code; browser test outstanding).** `getCardDatabase()` is a rewrite, not a patch.
+**Done 2026-09-15 — confirmed working in the browser by Harvey.** `getCardDatabase()` is a rewrite, not a patch.
 `CHAR_SHEET_NAME`/`SP_SHEET_NAME` collapse to a single `CAST_SHEET_NAME` (now `"IN Cast"` — the tab
 was renamed twice while this chunk was in flight); `MATCH_SHEET_NAME` is untouched. Verified by running the real function over the real 200-row CSV in a Node harness with
 `SpreadsheetApp` stubbed — 29 assertions, all passing, **zero warnings**:
@@ -611,6 +612,12 @@ was renamed twice while this chunk was in flight); `MATCH_SHEET_NAME` is untouch
   `formatRulesText()` + `escapeHtml()` lifted out of `CastRecruiter.html`: no `{`, `}`, `*` or raw
   `{M3/Icons/` survives, and the 37 icon-token cards render as `[SQUARE]` and friends.
 - `validate_cast.py` still passes clean (exit 0).
+
+**Getting there took four data faults, none of them in this chunk's code.** In order: 7 unbalanced
+asterisks in `Effect Details`; the cast tab renamed twice (`IN CAST` -> `Cast` -> `IN Cast`); the
+sheet feeding Dextrous holding a stale row order, which misaligned every injected name against its
+art; and the repo's CSV snapshot drifting from the live sheet on two Xalakith rows. The last two are
+invisible to every automated check — see `dextrous/make_contact_sheet.py`.
 
 **Two things this chunk surfaced, neither a code bug. The second is now fixed:**
 
