@@ -254,6 +254,16 @@ loudly when the deck is stale, because this failure is otherwise completely sile
 Also found and removed: `CLASS_CODES` mapped `CMP`, but champions actually use `CHP`, so that entry
 never matched anything in the deck's history.
 
+**Deploying a change to either script means re-pasting `Model_ID_Injector.lua` into the injector
+token in TTS — not just re-importing the deck.** This cost a full test round on 2026-09-15: the deck
+was re-imported and the injection re-run, but the *old* injector was still on the token, so minions
+still read 6. A stale injector (a) blanks `Description`, so no class is stamped, and (b) carries its
+own embedded copy of the health tracker and writes it onto every model, re-installing the old
+ID-parsing logic on all 200. **`Floating_Health_Tracker.lua` is never pasted by hand** — the injector
+is its delivery mechanism, which is why the embedded copy must stay byte-identical to the standalone
+file. Quick tell for which version is loaded: the string `Class check` exists only in the current
+injector, so no `Class check` line in the console means the token still has the old script.
+
 **`Fortitude` is NOT health — settled by Harvey, 2026-09-15.** `Fortitude` is a character's
 **defense** and `Prowess` is its **strength**; an attack compares strength against defense, which is
 what lets starting health be normalised to a flat value. So `Minion -> 2, everything else -> 6` is
