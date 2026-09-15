@@ -18,6 +18,10 @@ Data flow: the frontend loads via `doGet` → `HtmlService.createHtmlOutputFromF
 
 Backend data source: the active spreadsheet's single cast tab — all 200 cards (Champion, Familiar, Minion, Talisman, Special Action). The old `IN Cha-Tal` / `IN SP` pair is gone. Classes are stored in all caps and normalised to Title Case at the parse boundary.
 
+**`MATCH_SHEET_NAME` is not a second cast source — do not point it at a cast tab.** It is the *write* destination for the TTS webhook: `doPost` looks it up, creates it if absent, and `appendRow()`s a 9-column match record after every game (`main.gs:101-125`). It must stay `"IN TTS"` (see `PROJECT_NOTES.md:38`); aiming it at a card-data tab appends match logs onto the bottom of the cards.
+
+There is also a `DEX Cast` tab in the spreadsheet. **Nothing in this repo reads it** — the web app uses `Cast`, and the compiler reads the exported CSV. It appears to be the Dextrous-facing copy used to render card faces, so a text fix made only in `Cast` will not reach the card art unless `DEX Cast` mirrors it.
+
 **The tab name is `CAST_SHEET_NAME` at the top of `webapp/main.gs`.** It has been renamed before (`IN CAST` -> `Cast`), and `getSheetByName()` matches exactly — case and spacing included. If the tab is renamed, change that one constant, `clasp push`, and redeploy. `getCardDatabase()` lists every tab in the spreadsheet in its error when it can't find the configured one, so the correct name is in the error text itself.
 
 Expected `getCardDatabase()` schema:
