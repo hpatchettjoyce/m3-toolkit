@@ -16,7 +16,9 @@ Web app for building and validating game rosters ("casts") for the tabletop game
 
 Data flow: the frontend loads via `doGet` → `HtmlService.createHtmlOutputFromFile('CastRecruiter')`, then asynchronously calls `google.script.run.withSuccessHandler(...).withFailureHandler(...).getCardDatabase()`.
 
-Backend data source: the active spreadsheet's single `Cast` tab — all 200 cards (Champion, Familiar, Minion, Talisman, Special Action). The old `IN Cha-Tal` / `IN SP` pair is gone. Classes are stored in all caps and normalised to Title Case at the parse boundary.
+Backend data source: the active spreadsheet's single cast tab — all 200 cards (Champion, Familiar, Minion, Talisman, Special Action). The old `IN Cha-Tal` / `IN SP` pair is gone. Classes are stored in all caps and normalised to Title Case at the parse boundary.
+
+**The tab name is `CAST_SHEET_NAME` at the top of `webapp/main.gs`.** It has been renamed before (`IN CAST` -> `Cast`), and `getSheetByName()` matches exactly — case and spacing included. If the tab is renamed, change that one constant, `clasp push`, and redeploy. `getCardDatabase()` lists every tab in the spreadsheet in its error when it can't find the configured one, so the correct name is in the error text itself.
 
 Expected `getCardDatabase()` schema:
 ```json

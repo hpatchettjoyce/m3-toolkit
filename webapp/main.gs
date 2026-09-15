@@ -6,6 +6,8 @@
 
 // Global Sheet configuration names
 var MATCH_SHEET_NAME = "IN TTS";
+// The tab holding all 200 cast cards. Change this if the tab is renamed —
+// getCardDatabase() lists the available tabs in its error if it can't find it.
 var CAST_SHEET_NAME = "Cast";
 
 /**
@@ -264,7 +266,18 @@ function getCardDatabase() {
   var castSheet = ss.getSheetByName(CAST_SHEET_NAME);
 
   if (!castSheet) {
-    throw new Error('Missing required source spreadsheet tab "' + CAST_SHEET_NAME + '".');
+    // Name the tabs that *do* exist. The cast tab has been renamed before
+    // ("IN CAST" -> "Cast"), and without this the error is a dead end: the fix
+    // is always a one-line change to CAST_SHEET_NAME at the top of this file.
+    var available = ss.getSheets().map(function (sheet) { return sheet.getName(); });
+    var near = available.filter(function (sheetName) {
+      return sheetName.trim().toLowerCase() === CAST_SHEET_NAME.trim().toLowerCase();
+    });
+    throw new Error('Missing required source spreadsheet tab "' + CAST_SHEET_NAME + '". ' +
+        'Tabs in this spreadsheet: ' +
+        available.map(function (sheetName) { return '"' + sheetName + '"'; }).join(", ") + '. ' +
+        (near.length ? 'Did you mean "' + near[0] + '" (same name, different case or spacing)? ' : '') +
+        'Set CAST_SHEET_NAME in main.gs to the tab holding the cast data.');
   }
 
   var imageMappings = null;
