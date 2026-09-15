@@ -26,3 +26,6 @@ __pycache__/
 
 # Regenerated from the current deck export; art URL tokens rotate every render.
 dextrous/contact_sheet.html
+
+# WSL/Windows download metadata
+*:Zone.Identifier
