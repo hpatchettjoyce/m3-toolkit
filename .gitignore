@@ -23,3 +23,6 @@ __pycache__/
 
 # Claude Code local state (worktrees, machine-local settings)
 .claude/
+
+# Regenerated from the current deck export; art URL tokens rotate every render.
+dextrous/contact_sheet.html
