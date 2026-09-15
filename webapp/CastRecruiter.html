@@ -6,33 +6,36 @@
     <title>Monumentum Cast Recruiter</title>
     <style>
         :root {
+            color-scheme: dark;
+
             /* Screen chrome. Branding pass 1 step 2 re-defines these tokens for
                the off-black ground; nothing below this group is paper-facing. */
-            --primary-colour: #2c3e50;
-            --primary-strong-colour: #34495e;
-            --accent-colour: #d35400;
-            --accent-hover-colour: #e67e22;
-            --bg-colour: #f8f9fa;
-            --panel-bg: #ffffff;
-            --surface-bg: #f8f9fa;
-            --overlay-bg: #f4f6f7;
-            --field-bg: #ffffff;
-            --text-colour: #333333;
-            --heading-text-colour: #555555;
-            --subtle-text-colour: #666666;
-            --muted-text-colour: #7f8c8d;
-            --on-fill-colour: #ffffff;
-            --border-colour: #e0e0e0;
-            --card-back-colour: #222222;
-            --card-back-empty-colour: #333333;
-            --warning-colour: #c0392b;
-            --warning-bg: #fadbd8;
-            --warning-border: #f1948a;
-            --success-colour: #27ae60;
-            --success-hover-colour: #2196f3;
-            --neutral-colour: #7f8c8d;
-            --neutral-hover-colour: #95a5a6;
-            --scrim-colour: rgba(0, 0, 0, 0.5);
+            --primary-colour: #5CA7A8;
+            --primary-strong-colour: #B1C7C8;
+            --accent-colour: #E4A557;
+            --accent-hover-colour: #F1E3CE;
+            --bg-colour: #041212;
+            --panel-bg: #102A2A;
+            --surface-bg: #041212;
+            --overlay-bg: #041212;
+            --field-bg: #041212;
+            --text-colour: #F8F3E6;
+            --heading-text-colour: #B1C7C8;
+            --subtle-text-colour: #999F9F;
+            --muted-text-colour: #999F9F;
+            --on-fill-colour: #041212;
+            --border-colour: #374141;
+            --field-border-colour: #999F9F;
+            --card-back-colour: #041212;
+            --card-back-empty-colour: #374141;
+            --warning-colour: #C89583;
+            --warning-bg: #34050D;
+            --warning-border: #C89583;
+            --success-colour: #B7BA9F;
+            --success-hover-colour: #FBF8F0;
+            --neutral-colour: #999F9F;
+            --neutral-hover-colour: #FBF8F0;
+            --scrim-colour: rgba(4, 18, 18, 0.7);
             --shadow-rgb: 0, 0, 0;
 
             /* Ink. The printed sheet and its on-screen preview. These stay
@@ -192,8 +195,9 @@
             padding: 6px;
             font-size: 0.8rem;
             border-radius: var(--radius);
-            border: 1px solid var(--border-colour);
+            border: 1px solid var(--field-border-colour);
             box-sizing: border-box;
+            color: var(--text-colour);
             background-color: var(--field-bg);
         }
 
@@ -241,7 +245,8 @@
         select, button, textarea {
             width: 100%;
             padding: 12px;
-            border: 1px solid var(--border-colour);
+            color: var(--text-colour);
+            border: 1px solid var(--field-border-colour);
             border-radius: var(--radius);
             font-size: 1rem;
             box-sizing: border-box;
@@ -535,6 +540,12 @@
 
         /* Hide the elements on screen printing if needed */
         @media print {
+            /* The chrome above is dark; paper is not. Reset the UA colour scheme
+               so form controls and scrollbars do not print dark. */
+            :root {
+                color-scheme: light;
+            }
+
             @page {
                 size: A4;
                 margin: 0; /* Let our metric padding handle alignment to disable headers/footers */
@@ -649,8 +660,9 @@
             width: 100%;
             height: 180px;
             font-family: monospace;
+            color: var(--text-colour);
             background-color: var(--surface-bg);
-            border: 1px solid var(--border-colour);
+            border: 1px solid var(--field-border-colour);
             border-radius: var(--radius);
             padding: 10px;
             box-sizing: border-box;
