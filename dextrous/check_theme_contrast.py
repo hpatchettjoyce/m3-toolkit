@@ -80,6 +80,14 @@ PAIRS = [
 ]
 
 
+def read_js_map(text, name):
+    """Pull a `const NAME = { "key": "#hex", ... }` object out of the inline JS."""
+    block = re.search(r"const %s = \{(.*?)\n    \};" % name, text, re.S)
+    if not block:
+        sys.exit(f"could not find {name} in CastRecruiter.html")
+    return dict(re.findall(r'"([^"]+)":\s*"(#[0-9A-Fa-f]{6})"', block.group(1)))
+
+
 def read_tokens(text):
     block = re.search(r":root \{(.*?)\n        \}", text, re.S)
     if not block:
@@ -105,6 +113,7 @@ def main():
     tokens = read_tokens(text)
     print(f"Checking {len(PAIRS)} colour pairs from {len(tokens)} tokens in {HTML.name}\n")
 
+
     failures = []
     for fg, bg, minimum, where in PAIRS:
         missing = [t for t in (fg, bg) if t not in tokens]
@@ -118,6 +127,23 @@ def main():
             failures.append(f"{fg} on {bg} is {r:.2f}:1, needs {minimum}:1  ({where})")
         print(f"  {'ok  ' if ok else 'FAIL'}  {r:5.2f}:1 (min {minimum})  "
               f"{tokens[fg]} on {tokens[bg]}  {where}")
+
+    # Dominion colours reach the page only as ink. The print grid butts cards
+    # together with no gap, so a card's border is the line you cut along; a
+    # dominion whose border cannot be seen on white stock cannot be cut out.
+    print()
+    dominions = read_js_map(text, "FACTION_COLORS")
+    overrides = read_js_map(text, "FACTION_PRINT_OVERRIDES")
+    paper = tokens["--ink-paper"]
+    for dominion, screen in dominions.items():
+        ink = overrides.get(dominion, screen)
+        r = ratio(ink, paper)
+        ok = r >= UI
+        if not ok:
+            failures.append(f"{dominion} prints as {ink}, only {r:.2f}:1 on paper, needs {UI}:1")
+        note = "as supplied" if ink == screen else f"darkened from {screen}"
+        print(f"  {'ok  ' if ok else 'FAIL'}  {r:5.2f}:1 (min {UI})  "
+              f"{ink} on paper  {dominion} card border ({note})")
 
     # The print styles exist to save ink. A dark ink token means the theme leaked.
     print()

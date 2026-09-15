@@ -1416,14 +1416,38 @@
     });
 
     // Printer-friendly Cards Generation
+
+    // The dominion colours, exactly as the brand supplies them
+    // (assets/branding/Dominion Colours.txt). These are canonical: they were
+    // chosen to sit against the off-black ground, so they are the values to use
+    // for any on-screen dominion accent.
     const FACTION_COLORS = {
-        "Rhavlika": "#c0392b",     // Red
-        "Iro-Si-Khar": "#2980b9",  // Blue
-        "Voisira": "#b7950b",      // Legible Dark Gold/Amber
-        "Xalakith": "#7d3c98",     // Purple
-        "Ahèserec": "#27ae60",     // Green
-        "Veritian": "#138d75"      // Slate/Teal
+        "Rhavlika": "#DD2335",     // Red
+        "Iro-Si-Khar": "#28A9D9",  // Blue
+        "Voisira": "#F7B828",      // Yellow
+        "Xalakith": "#EDE9DC",     // Cream
+        "Ahèserec": "#29A049",     // Green
+        "Veritian": "#464C68"      // Slate
     };
+
+    // The same dominions as ink. The print grid butts cards against each other
+    // with no gap, so a card's border is also the line you cut along - it has to
+    // be visible on white stock. Three of the six do not clear 3:1 on paper
+    // (Xalakith's cream is 1.2:1, near enough a white line on white card), so
+    // they are darkened here with hue and saturation preserved. The other three
+    // print exactly as supplied and are deliberately absent from this table.
+    const FACTION_PRINT_OVERRIDES = {
+        "Iro-Si-Khar": "#24A0CE",  // was 2.70:1 on white, now 3.00:1
+        "Voisira": "#C48A07",      // was 1.77:1 on white, now 3.01:1
+        "Xalakith": "#A69356"      // was 1.21:1 on white, now 3.03:1
+    };
+
+    // Undefined for an unknown dominion, so the CSS declaration wins instead:
+    // every rule reads var(--faction-color, var(--ink-faction-fallback)), which
+    // keeps the fallback in one place rather than two that can drift apart.
+    function factionPrintColour(dominion) {
+        return FACTION_PRINT_OVERRIDES[dominion] || FACTION_COLORS[dominion];
+    }
 
     // Neutralise any markup coming from the spreadsheet before we build HTML from it.
     function escapeHtml(text) {
@@ -1455,7 +1479,7 @@
     }
 
     function generatePrintCard(card, qty) {
-        const factionColor = FACTION_COLORS[card.dominion] || "#34495e";
+        const factionColor = factionPrintColour(card.dominion);
         const costStr = card.cost !== undefined ? `${card.cost}E` : "";
         const classStr = card.class || "";
         const costClass = [costStr, classStr].filter(Boolean).join(" • ");
@@ -1468,7 +1492,9 @@
 
         const cardEl = document.createElement('div');
         cardEl.className = 'print-card';
-        cardEl.style.setProperty('--faction-color', factionColor);
+        if (factionColor) {
+            cardEl.style.setProperty('--faction-color', factionColor);
+        }
 
         // Header
         const headerEl = document.createElement('div');
