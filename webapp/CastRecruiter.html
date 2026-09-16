@@ -10,7 +10,7 @@
          below falls back to a real stack if the request fails -- see --font-display/-body. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:wght@300;600&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
@@ -75,6 +75,9 @@
 
         body {
             font-family: var(--font-body);
+            /* Montserrat Light. Only 300 and 600 are requested, so every `bold` (700) in the
+               file resolves to 600 - a lighter bold to match. */
+            font-weight: 300;
             background-color: var(--bg-colour);
             color: var(--text-colour);
             margin: 0;
@@ -410,6 +413,7 @@
 
         select, button, textarea, input {
             font-family: inherit;
+            font-weight: inherit;
         }
 
         select, button, textarea {
@@ -425,6 +429,24 @@
         select {
             margin-bottom: 15px;
             background-color: var(--field-bg);
+        }
+
+        /* Sized to its label, never squeezed below it: a fixed height plus a 150px
+           minimum used to wrap the text onto a second line that spilled out of the button.
+           It drops under the dominion select when the row runs out of room. */
+        .btn-import {
+            flex: 0 0 auto;
+            width: auto;
+            min-height: 48px;
+            padding: 12px 20px;
+            white-space: nowrap;
+            background-color: var(--primary-colour);
+            color: var(--on-fill-colour);
+            font-weight: bold;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
 
         .rail-actions {
@@ -577,10 +599,15 @@
             gap: 40px;
         }
 
+        /* align-self: the inner box is a flex column, which stretches children to its
+           full width by default - that is what spread the logo across the screen. */
         .site-footer-logo {
             display: block;
+            align-self: flex-start;
             height: 40px;
             width: auto;
+            max-width: 100%;
+            object-fit: contain;
         }
 
         .site-footer-legal {
@@ -598,7 +625,11 @@
             }
             .site-footer-logo {
                 height: 30px;
-                margin: 0 auto;
+                align-self: center;
+            }
+            .btn-import {
+                flex-basis: 100%;
+                white-space: normal;
             }
         }
 
@@ -938,13 +969,13 @@
 
     <div id="app" class="hidden">
         <div class="section" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            <div style="flex: 2; min-width: 200px;">
+            <div style="flex: 1 1 200px;">
                 <label for="dominion-select">Select Dominion</label>
                 <select id="dominion-select" style="margin-bottom: 0;">
                     <option value="">-- Choose a Dominion --</option>
                 </select>
             </div>
-            <button id="btn-import-top" class="btn-import" style="flex: 1; min-width: 150px; background-color: var(--primary-colour); color: var(--on-fill-colour); font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; height: 48px; transition: background-color 0.2s;">Import Cast JSON</button>
+            <button id="btn-import-top" class="btn-import">Import Cast JSON</button>
         </div>
 
         <div id="builder-content" class="hidden">
