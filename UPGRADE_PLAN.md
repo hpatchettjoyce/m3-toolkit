@@ -4,7 +4,9 @@
 **Status:** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS; **6 and 7 (branding) seen
 in the browser 2026-09-16 — Harvey: "does look better but it can be improved"**, and the six
 improvements he raised are specced as **Chunk 8, which is next** (Chunk 3 is withdrawn, D11). The
-one known failure is the favicon: `setFaviconUrl` errored "not supported", now Chunk 8 item 7. The validator passes clean, the compiler
+one known failure is the favicon: `setFaviconUrl` errored "not supported", now Chunk 8 item 7. The
+CSV was re-exported 2026-09-16 with Lark's ether cost moved into the effect text (**D12**, which
+supersedes D10); the validator passes on it. The validator passes clean, the compiler
 emits an ID-keyed `CardImages.gs` with all 200 cards, and `main.gs` serves all 200 from the single
 `IN Cast` tab with art looked up by card ID.
 Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
@@ -45,10 +47,11 @@ them in a later session.
 | D5 | The `Ignatious` -> `Ignatius` typo **has been fixed in the sheet**. Re-export the CSV. | §3.1, §6 |
 | D6 | Deliverables stay as **repo files**. Don't publish artifacts. | all handovers |
 | D11 | **The web app renders card *images*, not effect text — Chunk 3 is withdrawn.** The browser view already paints the sprite-sheet card face, and print preview is a deliberately plain, printer-friendly text card that is staying that way. No effect styling work is needed; the one real requirement (don't lose effect text that used to print) folds into Chunk 2. | §3.4, Chunk 2, Chunk 3 |
-| D10 | **An effect may carry an ether cost, written `\| N` at the end of `Effect Type N`** — `SPECIAL ACTION \| 4`. This is a *per-effect* cost, distinct from the card-level `Ether` column: Lark is a CHAMPION with a blank `Ether` whose `TRICK SHOT` still costs 4. **A `SPECIAL` always has one**, and the validator enforces that. | §3.4, Chunk 0, Chunk 2 |
-| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. | §3.4, Chunk 0, Chunk 2 |
+| D10 | ~~**An effect may carry an ether cost, written `\| N` at the end of `Effect Type N`** — `SPECIAL ACTION \| 4`. **A `SPECIAL` always has one**, and the validator enforces that.~~ *(**Superseded by D12, 2026-09-16.** The cost moved into the effect text as a `**ETHER(N)**:` tag and the `SPECIAL` effect-type prefix is retired. The per-effect vs card-level distinction D10 drew still holds — Lark is still a CHAMPION with a blank `Ether` whose `TRICK SHOT` costs 4 — only the place the cost is written has changed.)* | §3.4, Chunk 0, Chunk 2, Chunk 8 |
+| D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. *(**D12 narrows this:** the trailing ether cost and the `SPECIAL` prefix are both retired, so the grammar loses two branches. The grammar-not-a-list principle is unaffected.)* | §3.4, Chunk 0, Chunk 2, Chunk 8 |
 | D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 2 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 2 |
+| D12 | **A per-effect ether cost is written in the effect *details* as a leading `**ETHER(N)**:` tag, and the `SPECIAL` effect-type prefix is retired** (Harvey, 2026-09-16). Lark's `TRICK SHOT` went from type `SPECIAL ACTION \| 4` to type `FREE ACTION` with `**ETHER(4)**:` at the head of its body line. **`SPECIAL ACTION` remains a card *Class*** (102 cards) — only the effect-type prefix is gone. Supersedes D10. **The cost:** nothing now marks an effect as one that *should* cost ether, so a dropped tag is silent where D10's rule made it a hard error. | §3.4, Chunk 8 |
 
 ---
 
@@ -1008,7 +1011,7 @@ Existing breakpoints are at `:372` (1100), `:393` (900) and `:399` (600) — a 1
 Below 600px the grid is already `repeat(1, 1fr)`, so the phone case only needs its `max-width: 200px`
 art cap raised, since one card per row can afford to be large.
 
-#### 2. Reading the effects — five options, desktop only
+#### 2. Reading the effects — DECIDED: option 1 only, desktop only
 
 The art is a **sprite-sheet slice**, not a per-card image: `getCardStyle()` (`:1374`) sets
 `background-size: ${cols*100}% ${rows*100}%` and a percentage `background-position`. That matters
@@ -1038,15 +1041,31 @@ factor by scaling both numbers. These are the five, most-recommended first:
    text stays one interaction away. Needs an expanded-state design that doesn't reflow the whole
    grid — the fiddliest of the five.
 
-**Harvey picks.** 1 + 2 together is the recommendation: 1 makes the text readable at rest, 2 makes
-the art readable on demand, and neither needs data that isn't already there. 3 or 4 can be added
-later without undoing them; 5 conflicts with 1 and is an either/or.
+**DECIDED 2026-09-16 — build option 1 alone.** Harvey, on the zoom that was recommended alongside
+it: *"I'm concern a hover/focus zoom will be annoying when traveling around the app and would be too
+different for phones."* Both are fair: a hover panel firing on every tile the pointer crosses while
+scrolling a 5-wide grid is noise, and it would have no touch equivalent, so the phone and the
+desktop would work differently. **Options 2–5 are rejected, not deferred** — don't re-propose them
+without new reason.
 
-*Sixth possibility, noted and not counted:* `generatePrintCard()` (`:1543`) already composes a
-complete card face out of live text. Pointing it at the screen would give a fully legible card with
-no art at all — but it is ink-styled (light on white, `--ink-*`), so it would need a chrome-themed
-twin, and **CLAUDE.md warns against twin functions that drift**. Only worth it if Harvey wants the
-art gone on desktop.
+**And the caption is desktop-only.** Harvey: *"as we'll render the sprite at a whole card per screen
+for a phone I'm hoping we won't need the additional effect 'drawer' so we can hide it in that
+format."* Below 600px the grid is already one card per row, so the art itself is rendered large
+enough to read the baked-in effects — the caption would be duplicating what the card already says,
+at the cost of the vertical space this whole chunk is trying to win back. So: caption visible from
+600px up, hidden below it.
+
+**Do not hide the whole caption box on the phone, though — only the ability text.** Harvey's second
+answer puts the quantity badge *inside* that same box (see item 3), and quantity has to be settable
+on a phone. The box therefore needs two parts with different breakpoint behaviour: a control row
+(badge; always present, where the card takes a quantity) and an ability block (text; ≥600px only).
+Getting this wrong makes Basic Familiars unbuildable on a phone, which no test of the desktop layout
+would catch.
+
+*Sixth possibility, noted, not counted, and now moot:* `generatePrintCard()` (`:1543`) already
+composes a complete card face out of live text, but it is ink-styled (light on white, `--ink-*`) and
+would need a chrome-themed twin, which **CLAUDE.md warns against**. Option 1 gets the same
+readability without a second renderer.
 
 #### 3. Kill the gutter around the art
 
@@ -1061,7 +1080,19 @@ that border and the 3px frame shows `--card-back-colour` on all four sides.
   likes: `figure` with `border`, `border-radius: 8px`, art flush at `aspect-ratio: 5/7` — the same
   1:1.4 the app already uses — and a `figcaption` below it. The caption box is where item 2's
   option 1 puts the ability text.
-- **Do not put `overflow: hidden` on the tile.** See the gotcha below; it clips the quantity badge.
+- **DECIDED 2026-09-16: the quantity badge moves into that caption box**, out of its current
+  floating position at `top/right: -8px`. Harvey: *"Add the quantity badge to section below the card
+  where we're putting the legible ability text."* This is the change that makes the flush look
+  possible — with nothing overhanging the art any more, the tile **can** take `overflow: hidden`
+  exactly as `contact_sheet.html` does, and the clipping trap stops existing rather than being
+  worked around.
+- Consequences worth designing for, not discovering: the badge becomes a normal in-flow control, so
+  it needs a visible label (a bare number floating over art reads as a badge; sitting in a text box
+  it does not — `Qty` or a `×` prefix), it must keep `stopPropagation()` on click so changing a
+  quantity doesn't also toggle selection (`:1105`), and it must stay visible on the phone even
+  though the ability text beside it is hidden — see item 2.
+- The caption's own layout therefore has three states: art-only (champions, talismans — nothing to
+  show but the effect text), text-only, and text-plus-badge (Basic Familiars and Minions).
 
 #### 4. Montserrat as the general font
 
@@ -1139,13 +1170,80 @@ execution log, or browser), because if a direct `.png` is also refused, the hone
 iframed Apps Script web app's tab icon may not be settable at all — and the item should be dropped
 rather than chased.
 
+#### 8. The per-effect ether cost moves into the effect text (supersedes D10)
+
+**Raised by Harvey 2026-09-16:** *"I changed Lark again. Now there are no 'SPECIAL ACTION' effects on
+characters and no need for the additional ether cast UI element. Instead I'll add a 'ETHER(4):' tag
+at the front of the effect to cover the cost."*
+
+**He has already re-exported, and the working tree holds it** (uncommitted when this was written).
+The diff is one row — `03VOI-01CHP-0068` Lark, effect `TRICK SHOT`:
+
+| | Before | After |
+|---|---|---|
+| `Effect Type 1` | `SPECIAL ACTION \| 4` | `FREE ACTION` |
+| `Effect Details 1` | `**QUICKCHARGE**` / `This character gains…` | `**QUICKCHARGE**` / `**ETHER(4)**: This character gains…` |
+
+Two details the prose above doesn't capture, and both matter: the replacement type is **`FREE
+ACTION`**, not merely "not special"; and the tag is written **`**ETHER(4)**:`** — bold markdown,
+colon after the bold — placed at the start of the effect's *body* line, after the keyword line.
+
+**Audited against the new export, so this is measured, not assumed:**
+
+- **No effect type anywhere carries a `SPECIAL` prefix or a `| N` cost.** Both forms are gone from
+  all 200 rows, in both `Effect Type 1` and `Effect Type 2`.
+- `ETHER(N)` appears **exactly once** — Lark. This is the first instance of the new convention, not
+  a bulk migration.
+- **`SPECIAL ACTION` is still a card *Class*, on 102 of the 200 cards** — the single largest class.
+  See the namespace trap below.
+- All 102 `SPECIAL ACTION` *cards* carry a card-level `Ether` value, and all 12 `CHAMPION`s have it
+  blank. So the card-level cost column is untouched by this and keeps working as it did.
+- **`validate_cast.py` passes clean on the new export** (200 rows), and `formatRulesText()` already
+  turns `**ETHER(4)**:` into `<strong>ETHER(4)</strong>:` for free. So **nothing is broken and
+  nothing is urgent** — what follows is about keeping the safety net, not restoring function.
+
+**What to change:**
+
+- **Record the reversal.** D10 said the cost rides on the type and *"a `SPECIAL` always has one, and
+  the validator enforces that"*. That is now false. D10 is struck through and **D12** records the new
+  convention; D9's "optionally followed by an ether cost (D10)" clause is annotated with it.
+- **Turn the dead code into a stale-export detector rather than deleting it.** `parse_effect_type`,
+  `EFFECT_COST_PATTERN` and `EFFECT_PREFIXES_REQUIRING_COST` (`validate_cast.py:96-98`, `:140`) now
+  match nothing. The file already has the right mechanism for this — `SUPERSEDED_EFFECT_TYPES`,
+  which diagnoses pre-D8 spellings with "this is a stale export; re-export the sheet". Add the
+  `SPECIAL … | N` form to it and drop `SPECIAL` from `EFFECT_PREFIXES`, so a re-export that still
+  carries the old shape is *named* rather than silently accepted.
+- **Validate the tag's format.** Catch `ETHER(4)` without the bold, `ETHER (4)`, a missing colon, a
+  non-integer, or a tag that isn't at the start of its line. Cheap, and it is the only automated
+  check the new convention can have — see the next point.
+- **Fix the comment that is now wrong.** `validate_cast.py:87-89` asserts *"FREE costs nothing,
+  SPECIAL always costs ether"*. Lark is now a `FREE ACTION` that costs 4 ether, so `FREE` plainly
+  refers to the action economy, not to ether. A comment that confidently states the opposite of the
+  data is worse than no comment.
+
+**The cost of this change, stated plainly:** D10's rule was a real safety net. A `SPECIAL` type with
+no `| N` was a hard error, and that is exactly what caught Lark's dropped cost in the D8 re-export
+(§6 item 1b). With the cost living in free text there is **no longer anything that marks an effect as
+one that ought to cost ether**, so a dropped `**ETHER(4)**:` is now silent — the validator can check
+the tag's shape but never its presence. If that matters, the only real answer is a small explicit
+list of cards expected to carry a cost, checked by the validator. Worth asking Harvey, not worth
+assuming.
+
+**Nothing to remove for the "additional ether cast UI element."** Searched: the per-effect cost was
+never consumed anywhere in this repo. Ether tracking uses the card-level `cost` only
+(`calculateCurrentEther()`, `:999`), and the print card renders just `${card.cost}E` plus the class
+(`:1545-1547`). The element Harvey retired was on the **card artwork**, which this repo doesn't
+generate. So this item is data-convention work only — unless he can point at something specific in
+the app, in which case ask rather than guess.
+
 #### Gotchas to carry into the build
 
-- **The quantity badge lives outside the card's box.** `.card-qty-input` (`:150`) is a child of
-  `.visual-card` at `top: -8px; right: -8px`, so **`overflow: hidden` on the tile will clip it** —
-  and `overflow: hidden` is exactly what `contact_sheet.html` uses to get the flush look Harvey
-  likes. The contact sheet has no badges, so it gets away with it. Either move the badge inside the
-  art (`top: 4px; right: 4px`) or keep `overflow` visible and clip the art some other way.
+- **The quantity badge used to be the blocker for the flush look, and item 3 now removes it.**
+  `.card-qty-input` (`:150`) is a child of `.visual-card` at `top: -8px; right: -8px`, i.e. it
+  overhangs the art, so `overflow: hidden` — the very rule that gives `contact_sheet.html` its
+  flush edges — would clip it. Moving the badge into the caption is what resolves that. **If the
+  badge ever moves back over the art, the flush tile breaks again**, so keep the two decisions
+  together.
 - **A wider container collides with the fixed widget.** `.floating-status-widget` is
   `position: fixed; right: 20px` and does not participate in layout, so nothing stops the container
   sliding under it. At 1200px it never happens. At 1600px it starts on any viewport below ~1980px:
@@ -1166,22 +1264,41 @@ rather than chased.
   a caption full of effect text may not be wanted. Expect to split a `.card-grid--captioned`
   variant rather than changing the base class.
 
-**Test:** desktop at ≥1400px — five cards per row, art bigger than before, effects readable without
-hover; then 1100px, 900px and 600px, checking the column counts above and that the widget's buttons
-survive the reflow at 1100px. Confirm the quantity badge is still visible and clickable on Basic
-Familiars. Confirm Montserrat is actually loading (not the fallback), and that `h1`/`h2` are still
-Cinzel. Then print-preview once and confirm nothing changed on paper.
+**Test:** desktop at ≥1400px — five cards per row, art flush to the tile edge, art bigger than
+before, and the ability text readable in the caption without hovering or clicking anything. Then
+1100px, 900px and 600px, checking the column counts above and that the print/export buttons survive
+the widget's reflow at 1100px.
+
+Then the two things most likely to be got wrong, both on a **phone** (below 600px):
+
+1. The ability text is **hidden**, and the card art is one-per-row and large enough to read the
+   baked-in effects instead.
+2. The quantity badge is **still there and still works** on Basic Familiars, even though the text
+   beside it is hidden — set a quantity, confirm it registers against the Ether tracker, and confirm
+   tapping the badge does not also toggle the card's selection.
+
+Then: confirm Montserrat is loading rather than the fallback, `h1`/`h2` are still Cinzel, and
+`python3 dextrous/validate_cast.py` still passes. Finally print-preview once and confirm nothing
+changed on paper. Lark (`03VOI-01CHP-0068`) is the card to look at for the `**ETHER(4)**:` tag —
+it should read as bold inline text in the caption, and it is the only card in the set that has one.
 
 **Done when:** a full cast fits in appreciably less scrolling, a card's effects can be read on a
-desktop without opening anything, and print preview is byte-for-byte the same as before the chunk.
+desktop without opening anything, a phone can still set quantities, and print preview is
+byte-for-byte the same as before the chunk.
 
-**Open decisions for Harvey, both of which change the build:**
+**Decided 2026-09-16:** item 2 is **option 1 alone**, caption hidden below 600px; the quantity badge
+**moves into the caption box**; and item 8 records the `**ETHER(N)**:` convention.
 
-1. **Which of item 2's five options** (recommendation: 1 + 2 together).
-2. **Container width on large screens, and with it whether the tracker widget becomes a laid-out
+**Still open — one decision, and it changes the build:**
+
+1. **Container width on large screens, and with it whether the tracker widget becomes a laid-out
    right rail** (recommendation: yes to both — 1600px wide with a real rail gives 5 across at
    ~292px, bigger than today's 4 across at 260px). Keeping the fixed overlay caps how wide the
-   content can safely get, and on a 1680px screen forces the cards *smaller* than today.
+   content can safely get, and on a 1680px screen forces the cards *smaller* than today. Item 6
+   pushes the same way, since the print/export buttons are moving into that widget.
+
+**Worth asking, not worth assuming:** whether the validator should carry an explicit list of cards
+expected to have an `ETHER(N)` tag, to replace the presence check D10 used to give for free (item 8).
 
 ---
 
