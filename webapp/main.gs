@@ -21,13 +21,17 @@ var CAST_SHEET_NAME = "IN Cast";
 // the browser tab. setFaviconUrl() is the supported route and it takes a fetchable
 // URL — a data: URI will not do, which is why this needs a hosted raster.
 //
-// TO FILL IN: a PUBLIC URL to a SQUARE logomark PNG, ideally 256x256.
-// Use the logomark on its own (guide PG.02), not the horizontal lockup —
-// assets/branding/Horizontal_Filled_Light.png is 6208x1331, so at 16px of tab it
-// would be an unreadable sliver. A Drive file shared "anyone with the link" works:
-//   https://drive.google.com/thumbnail?id=<FILE_ID>&sz=w256
+// A PUBLIC URL to a SQUARE logomark PNG, ideally 256x256. Use the logomark on its own
+// (guide PG.02), not the horizontal lockup — Horizontal_Filled_Light.png is 6208x1331,
+// so at 16px of tab it would be an unreadable sliver.
+//
+// 2026-09-16: the Drive `thumbnail?id=...` form below errored "not supported" for
+// Harvey. That URL is a redirect with no image extension, which is the likeliest
+// reason. A direct URL ending in .png is the thing to try next — this repo is public,
+// so once a square logomark is committed to assets/branding/ its raw URL works:
+//   https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png
 // Leave it empty and the app simply keeps Apps Script's default icon.
-var FAVICON_URL = "";
+var FAVICON_URL = "https://drive.google.com/thumbnail?id=1QIURzyBekASaxbLyL0rh1Dpqy8s0xzvJ&sz=w256";
 
 /**
  * Serves the HTML frontend interface to clients.
@@ -37,9 +41,16 @@ function doGet() {
       .setTitle('Monumentum Cast Recruiter')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  // Guarded: setFaviconUrl("") would ask the browser for an empty URL.
+  // Guarded twice over. The empty check stops setFaviconUrl("") asking the browser for
+  // an empty URL; the try/catch stops a URL this API won't accept from taking the whole
+  // app down with it, because anything thrown here escapes doGet() and the page never
+  // renders. A tab icon is not worth a dead web app.
   if (FAVICON_URL) {
-    page.setFaviconUrl(FAVICON_URL);
+    try {
+      page.setFaviconUrl(FAVICON_URL);
+    } catch (err) {
+      console.warn("setFaviconUrl rejected " + FAVICON_URL + ": " + err);
+    }
   }
   return page;
 }

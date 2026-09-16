@@ -1,9 +1,10 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunks 0, 1 and 2 done and **verified in the browser**; Chunks 4 and 5 **confirmed in
-TTS by Harvey**; Chunks 6 and 7 (branding) are code-complete and machine-checked but **not yet
-eyeballed in a browser** (Chunk 3 is withdrawn, D11). The validator passes clean, the compiler
+**Status:** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS; **6 and 7 (branding) seen
+in the browser 2026-09-16 — Harvey: "does look better but it can be improved"**, and the six
+improvements he raised are specced as **Chunk 8, which is next** (Chunk 3 is withdrawn, D11). The
+one known failure is the favicon: `setFaviconUrl` errored "not supported", now Chunk 8 item 7. The validator passes clean, the compiler
 emits an ID-keyed `CardImages.gs` with all 200 cards, and `main.gs` serves all 200 from the single
 `IN Cast` tab with art looked up by card ID.
 Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
@@ -943,6 +944,244 @@ against it. Worth revisiting only if Harvey asks.
 
 **Outstanding, needs Harvey:** a square logomark PNG hosted at a public URL, pasted into
 `FAVICON_URL`. Everything else in the chunk is code-complete.
+
+---
+
+### Chunk 8 — Layout density and readability
+
+**Prerequisite: SATISFIED.** Nothing to supply. Every measurement below was taken from the file as
+it stands after Chunk 7, and the effect text this chunk needs is **already in the payload** —
+`baseCard()` in `main.gs:430` ships `effect` (composed), `effect1Name/Type/Details`,
+`effect2Name/Type/Details`, `keywords` and `flavourText` for every card, and the frontend already
+renders it for paper through `formatRulesText()` (`CastRecruiter.html:1524`). So no backend work and
+no new columns.
+
+**Goal:** fit a cast on one or two screens instead of five, and make a card's effects readable
+without squinting at the art.
+
+**Raised by Harvey 2026-09-16** after the first browser pass of Chunks 6–7: *"The Webapp does look
+better but it can be improved."*
+
+#### The tension to settle first (items 1 and 3 pull against each other)
+
+Measured, not guessed. `.container` is `max-width: 1200px` with `30px` padding (`:84`), so content is
+**1140px**. `.card-grid` is `repeat(auto-fill, minmax(240px, 1fr))` with a `20px` gap (`:105`), which
+yields **4 columns of 270px** today, with `.visual-card` capping the art at `260px` (`:126`).
+
+Asking for 5 columns *inside the same 1200px container* gives `(1140 − 4×20) / 5 =` **212px** cards —
+an 18% shrink, when item 3 says the cards are already too small. The two asks are only compatible if
+the container gets wider on large screens:
+
+| Container | Content | 5 cols @ 20px gap | vs. today's 260px |
+|---|---|---|---|
+| 1200px (today) | 1140px | 212px | −18% |
+| 1400px | 1340px | 252px | −3% |
+| **1600px** | 1540px | **292px** | **+12%** |
+| 1760px | 1700px | 324px | +25% |
+
+**Recommendation: widen to 1600px, drop the `260px` cap on `.visual-card`, and make the tracker
+widget a laid-out right rail rather than a fixed overlay** (which item 6 wants anyway). That gives 5
+across at ~292px — bigger than today's 4 across at 260px — and it is the only version of this that
+survives a 1680px screen.
+
+The reason the rail matters: `.floating-status-widget` is `position: fixed`, so it takes no layout
+space and nothing stops a wider container sliding underneath it. Reserving space with a centred
+`max-width` is possible but expensive, because **a centred box gives back only half of whatever you
+subtract** — clearing a ~190px rail needs `min(1600px, 100vw - 380px)`, not `- 190px`. At a 1920px
+viewport that still yields 280px cards, but at 1680px it drops to 232px, i.e. *smaller* than today.
+So the cheap fix works only on very wide screens; the rail is the real answer.
+
+#### 1. Five across on the desktop, one on the phone
+
+Replace the `auto-fill` track with explicit counts, so the column count is a decision rather than a
+side effect of the minimum width:
+
+| Width | Columns |
+|---|---|
+| ≥ 1400px | 5 |
+| 1100–1400px | 4 |
+| 900–1100px | 3 |
+| 600–900px | 2 |
+| < 600px | 1 |
+
+Existing breakpoints are at `:372` (1100), `:393` (900) and `:399` (600) — a 1400px one is new.
+Below 600px the grid is already `repeat(1, 1fr)`, so the phone case only needs its `max-width: 200px`
+art cap raised, since one card per row can afford to be large.
+
+#### 2. Reading the effects — five options, desktop only
+
+The art is a **sprite-sheet slice**, not a per-card image: `getCardStyle()` (`:1374`) sets
+`background-size: ${cols*100}% ${rows*100}%` and a percentage `background-position`. That matters
+twice over — there is no bigger version of the art to swap in, but the same trick zooms to any
+factor by scaling both numbers. These are the five, most-recommended first:
+
+1. **Caption under the tile (recommended, and what item 3 asks for).** The tile becomes a
+   contact-sheet `figure`: art flush on top, a text box beneath carrying
+   `formatRulesText(card.effect)`. Live HTML text at whatever size we choose, so the art never has
+   to be legible at all. Reuses the existing data and the existing formatter; nothing new to build
+   or maintain. Costs vertical space per tile — which item 5 is separately clawing back.
+2. **Hover / focus zoom (recommended as the companion to 1).** On hover or keyboard focus, a fixed
+   panel shows the same slice at ~3× with the effects as text beside it. Cheap, because the sprite
+   maths already supports it: multiply both `background-size` percentages by the zoom factor. Needs
+   a focus trigger as well as hover, and does nothing on touch — acceptable, since Harvey scoped
+   this to desktop.
+3. **Click-to-open detail modal.** Mirrors the existing import modal (`#import-modal`), showing the
+   art large plus the *split* fields as labelled rows — name, type, details, per effect — rather
+   than the composed blob. Best readability of the five and the only one that can show flavour text
+   and keywords too; costs a click and a dismiss per card.
+4. **A density toggle: "art" vs "text".** One control swaps the grid for a compact table — name,
+   cost, class, effects — for scanning while building, then back to art for the visual check. Helps
+   the scrolling complaint more than any other option here, because it removes the art entirely.
+   Two layouts to keep working instead of one.
+5. **Progressive disclosure in the caption.** The caption shows only effect *names and types*, one
+   line each, and expands to full details on click. Keeps the 5-across grid short while the full
+   text stays one interaction away. Needs an expanded-state design that doesn't reflow the whole
+   grid — the fiddliest of the five.
+
+**Harvey picks.** 1 + 2 together is the recommendation: 1 makes the text readable at rest, 2 makes
+the art readable on demand, and neither needs data that isn't already there. 3 or 4 can be added
+later without undoing them; 5 conflicts with 1 and is an either/or.
+
+*Sixth possibility, noted and not counted:* `generatePrintCard()` (`:1543`) already composes a
+complete card face out of live text. Pointing it at the screen would give a fully legible card with
+no art at all — but it is ink-styled (light on white, `--ink-*`), so it would need a chrome-themed
+twin, and **CLAUDE.md warns against twin functions that drift**. Only worth it if Harvey wants the
+art gone on desktop.
+
+#### 3. Kill the gutter around the art
+
+The "gutter" is `border: 3px solid transparent` on `.visual-card` (`:131`), reserved for the
+selected state. Because the background's positioning area is the padding box, the art stops short of
+that border and the 3px frame shows `--card-back-colour` on all four sides.
+
+- Drop the transparent border and draw selection with `box-shadow: 0 0 0 3px var(--accent-colour)`
+  instead. A box-shadow takes no layout space, so selecting a card also stops nudging the grid.
+  (`--accent-colour` on `--panel-bg` is already asserted at 3:1 by the contrast checker.)
+- Restructure the tile to match `dextrous/contact_sheet.html:13-20`, which is the look Harvey
+  likes: `figure` with `border`, `border-radius: 8px`, art flush at `aspect-ratio: 5/7` — the same
+  1:1.4 the app already uses — and a `figcaption` below it. The caption box is where item 2's
+  option 1 puts the ability text.
+- **Do not put `overflow: hidden` on the tile.** See the gotcha below; it clips the quantity badge.
+
+#### 4. Montserrat as the general font
+
+`--font-body` (`:66`) becomes Montserrat with the current stack as fallback. Two points:
+
+- **This is Harvey's call, not the guide's.** The guide specifies *no* body face — Cinzel is the
+  logo typeface only (PG.07), which Chunk 7 settled. Montserrat is a choice, and a sane one: it is
+  OFL, on Google Fonts, and a geometric sans that sits well under an inscriptional Roman serif.
+- It joins the **existing** Google Fonts request at `:10` as a second family in the same URL, not a
+  second `<link>`. **`--font-display` stays Cinzel and the print card stays Arial** — the metric rule
+  from Chunk 7 is unchanged and is in CLAUDE.md.
+
+#### 5. Fold Loyal Companions and Signature Actions into the sections they belong to
+
+Today `#recruitment-section` stacks *Loyal Companions* above *Basic Familiars & Minions* above
+*Talismans*, each with its own `h3` and its own full-width grid (`:770-780`), and `#specials-section`
+stacks *Signature Actions* above *Special Actions* (`:783-793`). Each `h3` plus its grid's
+`margin-bottom: 30px` is pure vertical cost when the group holds one or two cards.
+
+Target: the loyal group occupies the **first cells of the familiars row**, boxed and labelled, with
+the basic familiars flowing on after it in the same row — and the same for signature actions inside
+special actions.
+
+- **Preferred mechanism: one grid, with the boxed group as a grid item spanning `n` columns and
+  `grid-template-columns: subgrid`.** Subgrid is what keeps the boxed cards exactly the same width
+  as the unboxed ones; without it the box's border and padding make its cards narrower and the row
+  looks broken. Baseline-supported in current Chrome, Firefox and Safari.
+- The box itself: `fieldset` + `legend` is the honest markup for "a box with a legend", and gives
+  the grouping to screen readers for free.
+- **Fallback if subgrid proves awkward:** a flex row of two items — the fieldset at its natural
+  width, the familiars grid at `flex: 1`. Simpler, but card widths differ between the two halves.
+  Settle this at build time against the real card counts; don't design for it in advance.
+
+#### 6. Move Print and Export up beside the trackers
+
+`#btn-print` and `#btn-export` sit in the last section (`:802-806`), below everything. They move
+under the Ether and Specials readouts in `.floating-status-widget` (`:183`).
+
+- `#export-output`, the JSON textarea, is the loose end: it cannot follow the buttons into a
+  150px-wide widget. **Export should open a modal instead**, mirroring the import modal that already
+  exists — symmetric with "Import Cast JSON", and it removes the last full-width section entirely.
+- Below 1100px the widget already reflows from a fixed corner box to a sticky horizontal row
+  (`:373`); the buttons have to survive that change, so they need a row layout there too.
+- Moving the buttons into a `position: fixed` element makes them permanently reachable, which is the
+  point, but it also makes the widget the widest thing on the right — see the collision gotcha.
+
+#### 7. The favicon, which failed
+
+Harvey, 2026-09-16: *"I tried to add the favicon but I get an error it is not supported."*
+
+**Largely diagnosed already.** He had pasted a Drive `thumbnail?id=…&sz=w256` URL into
+`FAVICON_URL`, which is a **redirect with no image extension** — the URL shape most likely to be
+refused. So the fault is almost certainly the URL, not the call.
+
+**Already fixed: the failure can no longer kill the app.** Anything thrown inside `doGet()` escapes
+it and the page never renders at all, so a rejected favicon URL was taking down the whole web app
+rather than just dropping the icon. `setFaviconUrl` is now wrapped in a try/catch that warns to the
+execution log (`main.gs:48-54`). Harvey's URL is left in place, so a re-push shows whether it works
+with the crash risk removed.
+
+**Next, if the icon still doesn't appear:** use a direct URL ending in `.png`. This repo is public
+on GitHub, so committing a square logomark to `assets/branding/` gives one for free:
+
+```
+https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png
+```
+
+He appears to have the square asset already — the Drive id in `FAVICON_URL` points at something he
+uploaded for this — so this may be a copy into the repo rather than new artwork. It still cannot be
+cropped or resized here (no PIL, ImageMagick or `rsvg-convert`; the horizontal lockup is 6208×1331
+and useless at 16px).
+
+Still worth capturing the **verbatim** error text and where it appeared (Apps Script editor,
+execution log, or browser), because if a direct `.png` is also refused, the honest answer is that an
+iframed Apps Script web app's tab icon may not be settable at all — and the item should be dropped
+rather than chased.
+
+#### Gotchas to carry into the build
+
+- **The quantity badge lives outside the card's box.** `.card-qty-input` (`:150`) is a child of
+  `.visual-card` at `top: -8px; right: -8px`, so **`overflow: hidden` on the tile will clip it** —
+  and `overflow: hidden` is exactly what `contact_sheet.html` uses to get the flush look Harvey
+  likes. The contact sheet has no badges, so it gets away with it. Either move the badge inside the
+  art (`top: 4px; right: 4px`) or keep `overflow` visible and clip the art some other way.
+- **A wider container collides with the fixed widget.** `.floating-status-widget` is
+  `position: fixed; right: 20px` and does not participate in layout, so nothing stops the container
+  sliding under it. At 1200px it never happens. At 1600px it starts on any viewport below ~1980px:
+  the container's right edge sits at `100vw/2 + 800` and the widget's left edge at about
+  `100vw - 190` (a ~150px box at `right: 20px`), so they meet when `100vw < 1980`. Item 6 makes the widget taller and wider, which
+  moves that threshold up. **So if items 1, 3 and 6 all land, build the real two-column shell** —
+  content plus a laid-out right rail — instead of a fixed overlay pretending to be one. A centred
+  `max-width` cannot buy its way out of this on a 1680px screen; see the arithmetic above.
+- **Print is out of scope and must stay that way.** The print grid is its own
+  `repeat(3, 63.5mm)` (`:505`, `:667`) and shares nothing with `.card-grid`, so none of this reaches
+  paper — but `.print-card*` still lives *outside* `@media print`, so the Chunk 6 rule holds: any
+  colour or font that touches a card is `--ink-*` and Arial.
+- **`formatRulesText()` escapes before it marks up**, and strips `{M3/Icons/...}` tokens to
+  `[Name]`. Reusing it for the caption is safe against sheet content; hand-rolling a second
+  formatter would not be, and would be the twin-function trap again.
+- **`.card-grid` is used by six grids**, including `#talismans-grid` and `#champion-grid` (`:767-793`).
+  A change to the shared class hits all six — the champion row and the talisman row included, where
+  a caption full of effect text may not be wanted. Expect to split a `.card-grid--captioned`
+  variant rather than changing the base class.
+
+**Test:** desktop at ≥1400px — five cards per row, art bigger than before, effects readable without
+hover; then 1100px, 900px and 600px, checking the column counts above and that the widget's buttons
+survive the reflow at 1100px. Confirm the quantity badge is still visible and clickable on Basic
+Familiars. Confirm Montserrat is actually loading (not the fallback), and that `h1`/`h2` are still
+Cinzel. Then print-preview once and confirm nothing changed on paper.
+
+**Done when:** a full cast fits in appreciably less scrolling, a card's effects can be read on a
+desktop without opening anything, and print preview is byte-for-byte the same as before the chunk.
+
+**Open decisions for Harvey, both of which change the build:**
+
+1. **Which of item 2's five options** (recommendation: 1 + 2 together).
+2. **Container width on large screens, and with it whether the tracker widget becomes a laid-out
+   right rail** (recommendation: yes to both — 1600px wide with a real rail gives 5 across at
+   ~292px, bigger than today's 4 across at 260px). Keeping the fixed overlay caps how wide the
+   content can safely get, and on a 1680px screen forces the cards *smaller* than today.
 
 ---
 
