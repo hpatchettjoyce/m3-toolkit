@@ -253,13 +253,14 @@
             overflow-wrap: anywhere;
         }
 
-        /* Card-level keywords (RANGE(5), STEALTH, ...), a teal bar above the effects */
+        /* Card-level keywords (RANGE(5), STEALTH, ...), a teal bar below the effects - the
+           same place the printed card face carries them */
         .card-keywords {
             display: flex;
             flex-wrap: wrap;
             gap: 4px 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-colour);
+            padding-top: 8px;
+            border-top: 1px solid var(--border-colour);
             font-weight: 600;
             color: var(--primary-colour);
             letter-spacing: 0.3px;
@@ -1656,7 +1657,7 @@
         const keywordsHtml = keywords.length
             ? '<div class="card-keywords">' + keywords.map(k => `<span>${formatRulesText(k)}</span>`).join('') + '</div>'
             : '';
-        return keywordsHtml + [1, 2].map(slot => {
+        return [1, 2].map(slot => {
             const name = card[`effect${slot}Name`];
             const type = card[`effect${slot}Type`];
             const details = card[`effect${slot}Details`];
@@ -1666,7 +1667,7 @@
                 + (type ? `<div class="card-effect-type">${escapeHtml(type)}</div>` : '')
                 + (details ? `<div class="card-effect-details">${formatRulesText(details)}</div>` : '')
                 + '</div>';
-        }).join('');
+        }).join('') + keywordsHtml;
     }
 
     function buildCardTile(card, cardEl, control) {
