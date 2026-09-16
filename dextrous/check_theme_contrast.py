@@ -45,6 +45,7 @@ PAIRS = [
     ("--subtle-text-colour",  "--panel-bg",       TEXT, ".loader, import modal copy"),
     ("--muted-text-colour",   "--panel-bg",       TEXT, ".status-label, .empty-message"),
     ("--primary-colour",      "--panel-bg",       TEXT, "h1, h2, #ether-tracker"),
+    ("--primary-colour",      "--bg-colour",      TEXT, ".site-footer-legal a (contact link)"),
 
     # --- screen chrome, text on filled buttons ---
     ("--on-fill-colour", "--primary-colour",        TEXT, ".print-overlay-header, #btn-import-top"),
