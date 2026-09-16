@@ -51,7 +51,7 @@ them in a later session.
 | D9 | **Effect types are validated as a grammar, not a list.** `ABILITY`, or `[FREE\|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]`, either optionally followed by an ether cost (D10) — brackets optional, slashes either/or. A closed list broke on every vocabulary tweak; the grammar accepts new legal combinations without a code change. *(**D12 narrows this:** the trailing ether cost and the `SPECIAL` prefix are both retired, so the grammar loses two branches. The grammar-not-a-list principle is unaffected.)* | §3.4, Chunk 0, Chunk 2, Chunk 8 |
 | D8 | **Effect-type vocabulary trimmed on 2026-09-14**: the redundant trailing `ACTION` is dropped wherever the type already implies one — `ATTACK ACTION` -> `ATTACK`, `MANOEUVRE ACTION` -> `MANOEUVRE`, `ATTACK MANOEUVRE ACTION` -> `ATTACK MANOEUVRE`, `FREE ATTACK ACTION` -> `FREE ATTACK`. An attack *is* an action unless it is a reaction. `ACTION`, `FREE ACTION`, `SPECIAL ACTION` and `REACTION` keep the word. Same re-export fixed the misaligned effect rows. | §2.2, §3.4, Chunk 0, Chunk 2 |
 | D7 | **Effect columns were re-split on 2026-09-14**: `Effect Name N` / `Effect Type N` / `Effect Details N`, all clean, no Dextrous markup; `Flavour Text` renamed `Flavour`. The roster is unchanged. Anything referencing `Effect 1 - Name` or `{EffectName:…}` is a stale export. | §2.2, §3.4, Chunk 0, Chunk 2 |
-| D12 | **A per-effect ether cost is written in the effect *details* as a leading `**ETHER(N)**:` tag, and the `SPECIAL` effect-type prefix is retired** (Harvey, 2026-09-16). Lark's `TRICK SHOT` went from type `SPECIAL ACTION \| 4` to type `FREE ACTION` with `**ETHER(4)**:` at the head of its body line. **`SPECIAL ACTION` remains a card *Class*** (102 cards) — only the effect-type prefix is gone. Supersedes D10. **The cost:** nothing now marks an effect as one that *should* cost ether, so a dropped tag is silent where D10's rule made it a hard error. | §3.4, Chunk 8 |
+| D12 | **A per-effect ether cost is written in the effect *details* as a leading `**ETHER(N)**:` tag, and the `SPECIAL` effect-type prefix is retired** (Harvey, 2026-09-16). Lark's `TRICK SHOT` went from type `SPECIAL ACTION \| 4` to type `FREE ACTION` with `**ETHER(4)**:` at the head of its body line. **`SPECIAL ACTION` remains a card *Class*** (102 cards) — only the effect-type prefix is gone. Supersedes D10. **The cost:** nothing now marks an effect as one that *should* cost ether, so a dropped tag is silent where D10's rule made it a hard error — **accepted by Harvey; no presence check**, format check only. | §3.4, Chunk 8 |
 
 ---
 
@@ -1225,9 +1225,9 @@ colon after the bold — placed at the start of the effect's *body* line, after 
 no `| N` was a hard error, and that is exactly what caught Lark's dropped cost in the D8 re-export
 (§6 item 1b). With the cost living in free text there is **no longer anything that marks an effect as
 one that ought to cost ether**, so a dropped `**ETHER(4)**:` is now silent — the validator can check
-the tag's shape but never its presence. If that matters, the only real answer is a small explicit
-list of cards expected to carry a cost, checked by the validator. Worth asking Harvey, not worth
-assuming.
+the tag's shape but never its presence. **DECIDED 2026-09-16: accepted, no presence check.**
+Harvey: *"I don't need the ether check that's fine."* So no list of cards expected to carry a cost —
+build the format check only, and don't re-propose a presence check.
 
 **Nothing to remove for the "additional ether cast UI element."** Searched: the per-effect cost was
 never consumed anywhere in this repo. Ether tracking uses the card-level `cost` only
@@ -1297,8 +1297,8 @@ byte-for-byte the same as before the chunk.
    content can safely get, and on a 1680px screen forces the cards *smaller* than today. Item 6
    pushes the same way, since the print/export buttons are moving into that widget.
 
-**Worth asking, not worth assuming:** whether the validator should carry an explicit list of cards
-expected to have an `ETHER(N)` tag, to replace the presence check D10 used to give for free (item 8).
+**Also decided 2026-09-16:** no presence check for `ETHER(N)` tags (item 8) — the silent-drop risk
+is accepted. The validator gets a format check only.
 
 ---
 
