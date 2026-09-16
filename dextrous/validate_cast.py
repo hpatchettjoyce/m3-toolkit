@@ -204,6 +204,9 @@ def effect_type_error(value: str) -> str | None:
     )
 
 
+# The sheet now writes the cost as an icon, `{Icon:{M3/Icons/Ether/Ether Cost N.svg}}:` (Lark,
+# 2026-09-16), which `check_icon_tokens` covers. This text form is kept for any card still using it.
+#
 # D12: a per-effect ether cost is a bold `**ETHER(N)**:` at the very start of a line of
 # the effect details (after the keyword line, if there is one). This checks the tag's
 # *shape* only. Whether an effect *ought* to carry one is not checkable -- nothing else
@@ -235,6 +238,46 @@ def ether_tag_errors(details: str) -> list[str]:
                 "of its line: bold, uppercase, no spaces inside, a whole number, then a colon and a space"
             )
     return problems
+
+
+# --- inline icon tokens -------------------------------------------------------------
+#
+# Rules text and Keywords reference icons as Dextrous tokens, in two shapes that both
+# appear in the export:
+#
+#     {Icon:{M3/Icons/Prowess/Prowess Plus 1.svg}}      (wrapped)
+#     {M3/Icons/Dice/Void Square.svg}                   (bare)
+#
+# `M3/Icons/<Type>/<File>` resolves to `assets/inline icons/<type>/<File>`. The web app
+# draws them from a sprite that `build_svg_sprite.py` embeds, keyed by `icon_symbol_id`.
+# The JavaScript in CastRecruiter.html (ICON_TOKEN, iconSymbolId) is the twin of these
+# three definitions -- change both or neither.
+
+ICON_TOKEN_PATTERN = re.compile(
+    r"\{Icon:\{M3/Icons/(?P<wtype>[^/{}]+)/(?P<wfile>[^{}]+?)\.(?:svg|png)\}\}"
+    r"|\{M3/Icons/(?P<btype>[^/{}]+)/(?P<bfile>[^{}]+?)\.(?:svg|png)\}"
+)
+
+ICON_ROOT = Path(__file__).resolve().parent.parent / "assets" / "inline icons"
+SPRITE_HTML = Path(__file__).resolve().parent.parent / "webapp" / "CastRecruiter.html"
+
+
+def icon_tokens(text: str) -> list[tuple[str, str, str]]:
+    """Every icon token in `text`, as (token, type, file stem)."""
+    return [
+        (m.group(0), m.group("wtype") or m.group("btype"), m.group("wfile") or m.group("bfile"))
+        for m in ICON_TOKEN_PATTERN.finditer(text)
+    ]
+
+
+def icon_symbol_id(icon_type: str, stem: str) -> str:
+    """`('Prowess', 'Prowess Plus 1')` -> `'icon-prowess-prowess-plus-1'`."""
+    slug = lambda value: re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return f"icon-{slug(icon_type)}-{slug(stem)}"
+
+
+def icon_asset_path(icon_type: str, stem: str) -> Path:
+    return ICON_ROOT / icon_type.lower() / f"{stem}.svg"
 
 
 ID_PATTERN = re.compile(r"^(\d{2}[A-Z]{3})-(\d{2}[A-Z]{3})-(\d{4})$")
@@ -364,6 +407,34 @@ def load_csv(path: Path, report: Report) -> list[dict] | None:
     return rows
 
 
+def check_icon_tokens(label: str, column: str, text: str, report: Report) -> None:
+    """Every icon token must name an SVG in the repo, and that SVG must be in the page.
+
+    The second half matters because the web app reads the live sheet: a token whose
+    icon isn't embedded still renders, but as `[TEXT]` rather than the icon.
+    """
+    embedded = SPRITE_HTML.read_text(encoding="utf-8") if SPRITE_HTML.exists() else ""
+    for token, icon_type, stem in icon_tokens(text):
+        path = icon_asset_path(icon_type, stem)
+        if not path.exists():
+            report.fail(
+                "icon token asset",
+                f"{label}: {column} uses {token} but there is no {path.relative_to(ICON_ROOT.parent.parent)}",
+            )
+        elif f'id="{icon_symbol_id(icon_type, stem)}"' not in embedded:
+            report.fail(
+                "icon token embedded",
+                f"{label}: {column} uses {token}, which isn't in the web app yet — "
+                "run python3 dextrous/build_svg_sprite.py",
+            )
+    leftover = ICON_TOKEN_PATTERN.sub("", text)
+    if "{" in leftover or "}" in leftover:
+        report.fail(
+            "icon token shape",
+            f"{label}: {column} has braces that aren't a recognised icon token: {leftover!r}",
+        )
+
+
 def check_rows(rows: list[dict], report: Report) -> None:
     if len(rows) != EXPECTED_ROW_COUNT:
         report.fail(
@@ -445,6 +516,8 @@ def check_rows(rows: list[dict], report: Report) -> None:
                 f"{label}: Role is {role or 'blank'} but Role Details says {role_details!r}",
             )
 
+        check_icon_tokens(label, "Keywords", row.get("Keywords", ""), report)
+
         # --- effects ---
         for slot in (1, 2):
             name = row[f"Effect Name {slot}"].strip()
@@ -467,6 +540,7 @@ def check_rows(rows: list[dict], report: Report) -> None:
                     "ether tag format",
                     f"{label}: Effect Details {slot} {problem}",
                 )
+            check_icon_tokens(label, f"Effect Details {slot}", row[f"Effect Details {slot}"], report)
             for column, value in ((f"Effect Name {slot}", name), (f"Effect Type {slot}", type_)):
                 if "{" in value or "*" in value:
                     report.fail(
