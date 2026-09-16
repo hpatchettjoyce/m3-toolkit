@@ -76,25 +76,19 @@ SEGMENT_BY_CLASS = {
 # the game actually allows, so new combinations pass without a code change:
 #
 #     ABILITY
-#     [FREE | SPECIAL] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION] [| N]
+#     [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
 #
 # Square brackets are optional, slashes are either/or. Everything is uppercase.
 #
-# `| N` is the effect's **ether cost** (D10) -- a per-effect cost, distinct from the
-# card-level `Ether` column. Lark is a CHAMPION with a blank `Ether` whose TRICK SHOT
-# still costs 4, so the two are not interchangeable.
-#
-# FREE and SPECIAL occupy the same slot, so `FREE SPECIAL ACTION` is not valid. They
-# pull in opposite directions -- FREE costs nothing, SPECIAL always costs ether -- but
-# if a combination is ever needed, this is the line to change.
+# FREE is about the action economy, not ether: Lark's TRICK SHOT is a FREE ACTION that
+# costs 4. A per-effect ether cost is not part of the type at all -- it is a leading
+# `**ETHER(N)**:` tag in the effect *details* (D12), checked by `ether_tag_errors`.
+# The old `SPECIAL` prefix and trailing `| N` cost are retired; `SPECIAL ACTION` lives
+# on only as a card *Class* (`CLASSES`), which is a different namespace.
 EFFECT_STANDALONE = ("ABILITY",)
-EFFECT_PREFIXES = ("FREE", "SPECIAL")
+EFFECT_PREFIXES = ("FREE",)
 EFFECT_CORES = ("ACTION", "ATTACK", "MANOEUVRE", "ATTACK MANOEUVRE")
 EFFECT_SUFFIXES = ("REACTION", "EXERTION")
-
-# A SPECIAL always carries a cost (Harvey, 2026-09-14). Enforced, because a dropped
-# cost is silent otherwise -- it is what went missing from Lark in the D8 re-export.
-EFFECT_PREFIXES_REQUIRING_COST = ("SPECIAL",)
 
 
 def _alternation(options: tuple[str, ...]) -> str:
@@ -106,8 +100,8 @@ def _alternation(options: tuple[str, ...]) -> str:
     return "|".join(re.escape(o) for o in sorted(options, key=len, reverse=True))
 
 
-# The type without its cost. Exactly one space between parts -- `\s*` here would quietly
-# accept `FREEACTION` and `FREE  ACTION`, both of which reach the card face verbatim.
+# Exactly one space between parts -- `\s*` here would quietly accept `FREEACTION` and
+# `FREE  ACTION`, both of which reach the card face verbatim.
 EFFECT_BASE_PATTERN = re.compile(
     "^(?:"
     + _alternation(EFFECT_STANDALONE)
@@ -116,10 +110,6 @@ EFFECT_BASE_PATTERN = re.compile(
     + "(?: (?:" + _alternation(EFFECT_SUFFIXES) + "))?"
     + ")$"
 )
-
-# `TYPE | N`, one space either side of the bar. The renderer also puts a `|` between
-# the effect name and its type, so a costed header reads `NAME | TYPE | N`.
-EFFECT_COST_PATTERN = re.compile(r"^(?P<base>.+?) \| (?P<cost>\d+)$")
 
 # Pre-D8 spellings. The grammar already rejects these -- `ATTACK ACTION` is a core
 # followed by another core -- but naming them turns "unknown value" into "stale
@@ -131,30 +121,43 @@ SUPERSEDED_EFFECT_TYPES = {
     "FREE ATTACK ACTION": "FREE ATTACK",
 }
 
+# Pre-D12 shapes: a `SPECIAL` prefix and/or a trailing `| N` ether cost on the type.
+# Patterns rather than entries in the table above, because the cost varies. Named for
+# the same reason -- a re-export that still carries the old shape is stale, not novel.
+PRE_D12_PREFIX = "SPECIAL"
+PRE_D12_COST_PATTERN = re.compile(r"^(?P<base>.*?)\s*\|\s*(?P<cost>.*)$")
+
 EFFECT_GRAMMAR_SUMMARY = (
-    "ABILITY, or [FREE|SPECIAL] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE "
-    "[REACTION/EXERTION], either optionally followed by ' | N' for an ether cost"
+    "ABILITY, or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]"
 )
 
 
-def parse_effect_type(value: str) -> tuple[str, int | None]:
-    """Split an effect type into its base and its ether cost.
+def pre_d12_effect_type_error(value: str) -> str | None:
+    """Name the retired `SPECIAL ... | N` effect-type shape, or return None."""
+    cost_match = PRE_D12_COST_PATTERN.match(value)
+    base = cost_match.group("base") if cost_match else value
+    has_prefix = base == PRE_D12_PREFIX or base.startswith(PRE_D12_PREFIX + " ")
+    if not cost_match and not has_prefix:
+        return None
 
-    `'SPECIAL ACTION | 4'` -> `('SPECIAL ACTION', 4)`; `'ABILITY'` -> `('ABILITY', None)`.
-    Chunk 3 needs the two apart to style them; validate first, since this does no
-    checking of its own.
-    """
-    match = EFFECT_COST_PATTERN.match(value)
-    if match:
-        return match.group("base"), int(match.group("cost"))
-    return value, None
+    parts = []
+    if has_prefix:
+        parts.append("the SPECIAL effect-type prefix is retired")
+    if cost_match:
+        cost = cost_match.group("cost")
+        tag = f"**ETHER({cost})**:" if cost.isdigit() else "**ETHER(N)**:"
+        parts.append(f"the ether cost now goes at the start of the effect details as {tag!r}")
+    return (
+        f"{value!r} is the pre-D12 form — {' and '.join(parts)}. "
+        "This is a stale export; re-export the sheet."
+    )
 
 
 def effect_type_error(value: str) -> str | None:
     """Return a readable reason `value` is not a valid effect type, or None if it is.
 
-    Diagnoses by peeling the cost, prefix and suffix off and naming whatever is left
-    over, so the report says which *part* is wrong rather than just rejecting the cell.
+    Diagnoses by peeling the prefix and suffix off and naming whatever is left over, so
+    the report says which *part* is wrong rather than just rejecting the cell.
     """
     superseded = SUPERSEDED_EFFECT_TYPES.get(value)
     if superseded:
@@ -163,34 +166,21 @@ def effect_type_error(value: str) -> str | None:
             "This is a stale export; re-export the sheet."
         )
 
-    base, cost = parse_effect_type(value)
+    stale = pre_d12_effect_type_error(value)
+    if stale:
+        return stale
 
-    if "|" in base:
-        return (
-            f"{value!r} has a malformed ether cost — expected a single "
-            f"' | N' with a whole number, as in 'SPECIAL ACTION | 4'"
-        )
-
-    if EFFECT_BASE_PATTERN.match(base):
-        needs_cost = any(
-            base == prefix or base.startswith(prefix + " ")
-            for prefix in EFFECT_PREFIXES_REQUIRING_COST
-        )
-        if needs_cost and cost is None:
-            return (
-                f"{value!r} has no ether cost — a SPECIAL always costs ether, so this "
-                f"should read {value + ' | N'!r} with the cost in place of N"
-            )
+    if EFFECT_BASE_PATTERN.match(value):
         return None
 
-    if base != base.upper():
-        return f"{base!r} is not uppercase (expected {base.upper()!r})"
+    if value != value.upper():
+        return f"{value!r} is not uppercase (expected {value.upper()!r})"
 
-    tidied = " ".join(base.split())
-    if tidied != base and EFFECT_BASE_PATTERN.match(tidied):
+    tidied = " ".join(value.split())
+    if tidied != value and EFFECT_BASE_PATTERN.match(tidied):
         return f"{value!r} has irregular whitespace — expected {tidied!r}"
 
-    remainder = base
+    remainder = value
     had_prefix = False
     for prefix in EFFECT_PREFIXES:
         if remainder == prefix or remainder.startswith(prefix + " "):
@@ -212,6 +202,39 @@ def effect_type_error(value: str) -> str | None:
         f"{list(EFFECT_CORES)} nor a standalone {list(EFFECT_STANDALONE)} "
         f"(grammar: {EFFECT_GRAMMAR_SUMMARY})"
     )
+
+
+# D12: a per-effect ether cost is a bold `**ETHER(N)**:` at the very start of a line of
+# the effect details (after the keyword line, if there is one). This checks the tag's
+# *shape* only. Whether an effect *ought* to carry one is not checkable -- nothing else
+# in the row marks it -- and Harvey accepted that a dropped tag is silent (2026-09-16).
+ETHER_TAG_PATTERN = re.compile(r"^\*\*ETHER\((?P<cost>\d+)\)\*\*:(?=\s|$)")
+
+# Anything that looks like an attempt at the tag: ETHER followed by a bracket, or a
+# bolded ETHER. Plain rules prose ("reduce its ether cost by 1") matches neither.
+ETHER_TAG_ATTEMPT_PATTERN = re.compile(r"(?:\*\*\s*)?\bether\b\s*[(\[{]|\*\*\s*ether\b", re.IGNORECASE)
+
+
+def ether_tag_errors(details: str) -> list[str]:
+    """Return a reason for each malformed `**ETHER(N)**:` tag in `details`."""
+    problems = []
+    for line in details.splitlines():
+        for attempt in ETHER_TAG_ATTEMPT_PATTERN.finditer(line):
+            snippet = line[attempt.start():attempt.start() + 16]
+            if attempt.start() == 0 and ETHER_TAG_PATTERN.match(line):
+                continue
+            if ETHER_TAG_PATTERN.match(line[attempt.start():]):
+                problems.append(
+                    f"has an ether tag {snippet!r} that is not at the start of its line"
+                )
+                continue
+            cost = re.search(r"\d+", line[attempt.start():attempt.end() + 12])
+            expected = f"**ETHER({cost.group()})**:" if cost else "**ETHER(N)**:"
+            problems.append(
+                f"has a malformed ether tag {snippet!r} — expected {expected!r} at the start "
+                "of its line: bold, uppercase, no spaces inside, a whole number, then a colon and a space"
+            )
+    return problems
 
 
 ID_PATTERN = re.compile(r"^(\d{2}[A-Z]{3})-(\d{2}[A-Z]{3})-(\d{4})$")
@@ -439,6 +462,11 @@ def check_rows(rows: list[dict], report: Report) -> None:
                         "effect type grammar",
                         f"{label}: Effect Type {slot} {problem}",
                     )
+            for problem in ether_tag_errors(row[f"Effect Details {slot}"]):
+                report.fail(
+                    "ether tag format",
+                    f"{label}: Effect Details {slot} {problem}",
+                )
             for column, value in ((f"Effect Name {slot}", name), (f"Effect Type {slot}", type_)):
                 if "{" in value or "*" in value:
                     report.fail(

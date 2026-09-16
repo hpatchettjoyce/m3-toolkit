@@ -341,6 +341,13 @@ Details that matter:
   a costed header ends up with two bars and only the first is composed. For the print card that is
   fine: both are literal text.
 - Name and type are always populated together — 90 cards have effect 1, 7 also have effect 2.
+> **Superseded in part by D12 (built in Chunk 8, 2026-09-16).** The grammar is now
+> `ABILITY` or `[FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]` — no `SPECIAL`
+> prefix, no `| N`. A per-effect cost is a leading `**ETHER(N)**:` in the effect details, which
+> `ether_tag_errors()` checks for shape only. `parse_effect_type()` is gone; the old shape is now
+> diagnosed as a stale export by `pre_d12_effect_type_error()`. The bullets below are the pre-D12
+> record.
+
 - **`Effect Type` follows a grammar** (D9), all caps:
 
   ```
