@@ -10,7 +10,7 @@
          below falls back to a real stack if the request fails -- see --font-display/-body. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:wght@300;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
@@ -75,8 +75,8 @@
 
         body {
             font-family: var(--font-body);
-            /* Montserrat Light. Only 300 and 600 are requested, so every `bold` (700) in the
-               file resolves to 600 - a lighter bold to match. */
+            /* Montserrat Light. Only 300, 400 and 600 (plus 300 italic) are requested, so every
+               `bold` (700) in the file resolves to 600 - a lighter bold to match. */
             font-weight: 300;
             background-color: var(--bg-colour);
             color: var(--text-colour);
@@ -242,13 +242,34 @@
             justify-content: flex-end;
         }
 
+        /* Each effect reads as: name (gold, regular), type on its own line (light italic,
+           grey - de-emphasised, and no longer wrapping mid-header behind a "|"), then the
+           details, where the **KEYWORD** tokens are bold teal. */
         .card-caption-text {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             color: var(--text-colour);
             overflow-wrap: anywhere;
         }
 
+        .card-effect-name {
+            font-weight: 400;
+            color: var(--accent-colour);
+            letter-spacing: 0.3px;
+        }
+
+        .card-effect-type {
+            font-style: italic;
+            font-weight: 300;
+            font-size: 0.8rem;
+            color: var(--muted-text-colour);
+            margin-bottom: 4px;
+        }
+
         .card-caption-text strong {
-            color: var(--heading-text-colour);
+            font-weight: 600;
+            color: var(--primary-colour);
         }
 
         /* Quantity on Basic Familiars: a labelled control, not a floating badge */
@@ -353,12 +374,13 @@
         /* Header lockup. The logo already carries the wordmark, so the h1 is only the
            tool's name; the accessible name of the pair reads "Monumentum" + "Cast
            Recruiter", matching the document title. */
-        /* Header bar: the lockup on the left, the dominion picker and import on the right.
+        /* Header bar: the lockup centred, the dominion picker and import on the right. Three
+           columns with equal outer tracks keep the lockup on the page's true centre line.
            The divider under it is the one the old full-width picker row used to carry. */
         .brand-bar {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: space-between;
             gap: 20px 40px;
             margin-bottom: 30px;
             padding-bottom: 25px;
@@ -366,7 +388,9 @@
         }
 
         .brand {
-            flex: 0 1 420px;
+            grid-column: 2;
+            width: 420px;
+            max-width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -374,7 +398,10 @@
         }
 
         .brand-controls {
-            flex: 0 1 300px;
+            grid-column: 3;
+            justify-self: end;
+            width: 300px;
+            max-width: 100%;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -389,17 +416,23 @@
             white-space: normal;
         }
 
-        /* Stacked: lockup centred, controls full width beneath it */
-        @media (max-width: 700px) {
+        /* Stacked once the side tracks can't hold the 300px controls (420 + 2 x 300 +
+           2 x 40 gap = 1100px of content): lockup, then the controls centred beneath it. */
+        @container (max-width: 1099px) {
             .brand-bar {
-                flex-direction: column;
-                align-items: stretch;
+                grid-template-columns: minmax(0, 1fr);
+                justify-items: center;
             }
-            .brand {
-                flex-basis: auto;
-            }
+            .brand,
             .brand-controls {
-                flex-basis: auto;
+                grid-column: 1;
+                justify-self: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .brand-controls {
+                width: 100%;
             }
         }
 
@@ -1595,12 +1628,29 @@
     // control lives here rather than over the art so the tile can clip to its rounded
     // corners - put it back over the art and overflow: hidden cuts it off. The caption
     // isn't part of the click target, which stays the art alone.
+    // The caption's effect text, built from the split name / type / details fields rather
+    // than the composed `card.effect` ("NAME | TYPE\ndetails"), so each part can be styled
+    // on its own. card.effect stays as it is: the print card still renders it.
+    function captionEffectsHtml(card) {
+        return [1, 2].map(slot => {
+            const name = card[`effect${slot}Name`];
+            const type = card[`effect${slot}Type`];
+            const details = card[`effect${slot}Details`];
+            if (!name && !type && !details) return '';
+            return '<div class="card-effect">'
+                + (name ? `<div class="card-effect-name">${escapeHtml(name)}</div>` : '')
+                + (type ? `<div class="card-effect-type">${escapeHtml(type)}</div>` : '')
+                + (details ? `<div class="card-effect-details">${formatRulesText(details)}</div>` : '')
+                + '</div>';
+        }).join('');
+    }
+
     function buildCardTile(card, cardEl, control) {
         const tile = document.createElement('figure');
         tile.className = 'card-tile';
         tile.appendChild(cardEl);
 
-        const effectHtml = formatRulesText(card.effect);
+        const effectHtml = captionEffectsHtml(card);
         if (!control && !effectHtml) return tile;
 
         const caption = document.createElement('figcaption');

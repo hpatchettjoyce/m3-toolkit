@@ -46,6 +46,9 @@ PAIRS = [
     ("--muted-text-colour",   "--panel-bg",       TEXT, ".status-label, .empty-message"),
     ("--primary-colour",      "--panel-bg",       TEXT, "h1, h2, #ether-tracker"),
     ("--primary-colour",      "--bg-colour",      TEXT, ".site-footer-legal a (contact link)"),
+    ("--accent-colour",       "--surface-bg",     TEXT, ".card-effect-name"),
+    ("--muted-text-colour",   "--surface-bg",     TEXT, ".card-effect-type"),
+    ("--primary-colour",      "--surface-bg",     TEXT, ".card-caption-text strong (keywords)"),
 
     # --- screen chrome, text on filled buttons ---
     ("--on-fill-colour", "--primary-colour",        TEXT, ".print-overlay-header, #btn-import-top"),
