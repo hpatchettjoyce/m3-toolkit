@@ -81,9 +81,27 @@
             box-sizing: border-box;
         }
 
-        .container {
-            max-width: 1200px;
+        /* Two-column shell: the builder, plus a laid-out rail for the trackers. The rail
+           used to be a position: fixed overlay, which takes no layout space, so any
+           container wider than ~1200px slid underneath it. A real column can't collide.
+           The rail track is fixed even while the rail is hidden (no dominion chosen yet),
+           so the builder doesn't change width the moment a dominion is picked. */
+        .app-shell {
+            --rail-width: 180px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) var(--rail-width);
+            gap: 20px;
+            align-items: start;
+            max-width: calc(1600px + 20px + var(--rail-width));
             margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            /* Column counts below are container queries on this box, not media queries:
+               the rail's width means the viewport says little about the room cards get. */
+            container-type: inline-size;
             background: var(--panel-bg);
             padding: 30px;
             border-radius: var(--radius);
@@ -101,10 +119,13 @@
             h1 { font-size: 1.5rem; }
         }
 
-        /* Responsive Grids */
+        /* Responsive Grids. Explicit column counts, so the count is a decision rather than
+           a side effect of a minimum width. Each step is where the next count up would
+           push cards under ~240px (n x 240 + (n - 1) x 20 gap); a 1600px container
+           (1540px content) gives five at ~292px. Phones (< 600px viewport) get one. */
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 20px;
             margin-top: 15px;
             margin-bottom: 30px;
@@ -123,7 +144,6 @@
         /* Visual Card */
         .visual-card {
             width: 100%;
-            max-width: 260px;
             aspect-ratio: 1 / 1.4;
             border-radius: var(--radius);
             background-repeat: no-repeat;
@@ -179,12 +199,11 @@
             -moz-appearance: textfield;
         }
 
-        /* Floating status widget */
-        .floating-status-widget {
-            position: fixed;
+        /* Status rail: trackers, plus the print and export buttons */
+        .status-rail {
+            position: sticky;
             top: 20px;
-            right: 20px;
-            z-index: 2000;
+            box-sizing: border-box;
             background: var(--panel-bg);
             border: 2px solid var(--primary-colour);
             border-radius: var(--radius);
@@ -370,15 +389,16 @@
         }
 
         @media (max-width: 1100px) {
-            .floating-status-widget {
-                position: sticky;
+            /* The rail folds into a sticky row above the builder */
+            .app-shell {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .status-rail {
+                order: -1;
                 top: 10px;
-                right: auto;
-                width: 100%;
+                z-index: 10;
                 flex-direction: row;
                 justify-content: space-around;
-                box-sizing: border-box;
-                margin-bottom: 20px;
                 border-width: 1px;
             }
             .status-item {
@@ -390,19 +410,26 @@
             }
         }
 
-        @media (max-width: 900px) {
-            .card-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
+        @container (max-width: 1279px) {
+            .card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
 
+        @container (max-width: 1019px) {
+            .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @container (max-width: 759px) {
+            .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        /* One card per row, rendered large enough to read the effects baked into the art */
         @media (max-width: 600px) {
             .card-grid {
-                grid-template-columns: repeat(1, 1fr);
+                grid-template-columns: minmax(0, 1fr);
                 justify-items: center;
             }
-            .visual-card {
-                max-width: 200px;
+            .card-container {
+                max-width: 400px;
             }
         }
 
@@ -731,17 +758,7 @@
 </head>
 <body>
 
-<div class="floating-status-widget hidden" id="status-widget">
-    <div class="status-item">
-        <span class="status-label">Ether Limit</span>
-        <span id="ether-tracker">0 / 40</span>
-    </div>
-    <div class="status-item">
-        <span class="status-label">Specials Limit</span>
-        <span id="specials-tracker">0 / 6</span>
-    </div>
-</div>
-
+<div class="app-shell">
 <div class="container">
     <header class="brand">
         <svg class="brand-logo" viewBox="0 0 1489.62 319.32" role="img" aria-label="Monumentum"><use href="#m3-logo"/></svg>
@@ -807,6 +824,18 @@
             </div>
         </div>
     </div>
+</div>
+
+<aside class="status-rail hidden" id="status-widget" aria-label="Cast limits">
+    <div class="status-item">
+        <span class="status-label">Ether Limit</span>
+        <span id="ether-tracker">0 / 40</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Specials Limit</span>
+        <span id="specials-tracker">0 / 6</span>
+    </div>
+</aside>
 </div>
 
 <!-- Fullscreen Print Preview Overlay -->

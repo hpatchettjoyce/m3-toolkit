@@ -1011,6 +1011,24 @@ Existing breakpoints are at `:372` (1100), `:393` (900) and `:399` (600) — a 1
 Below 600px the grid is already `repeat(1, 1fr)`, so the phone case only needs its `max-width: 200px`
 art cap raised, since one card per row can afford to be large.
 
+**AS BUILT 2026-09-16 — the viewport table above was wrong once the rail existed, so the counts key
+off the container instead.** The table assumed the grid gets the whole viewport; the laid-out rail
+takes ~200px of it, so at a 1400px viewport five columns would be (1400 − 40 body − 200 rail − 60
+padding − 80 gaps) / 5 = **204px** — smaller than today, contradicting the decision that cards get
+bigger. The counts are still explicit steps, but they are `@container` queries on `.container`'s
+content width, each at the point where one more column would push cards under ~240px:
+
+| Container content | Columns | Viewport, rail beside (≥1100px) | Viewport, rail on top (<1100px) |
+|---|---|---|---|
+| ≥ 1280px | 5 | ≥ ~1580px | — |
+| 1020–1279px | 4 | ~1320–1580px | — |
+| 760–1019px | 3 | ~1100–1320px | ~860–1100px |
+| < 760px | 2 | — | 600–860px |
+| (viewport < 600px) | 1 | — | < 600px |
+
+So a 1920px screen gets 5 at ~292px as decided, a 1440px laptop gets 4 at ~255px (5 would be ~200px),
+and the phone's art cap is `max-width: 400px` on the container rather than 200px.
+
 #### 2. Reading the effects — DECIDED: option 1 only, desktop only
 
 The art is a **sprite-sheet slice**, not a per-card image: `getCardStyle()` (`:1374`) sets
