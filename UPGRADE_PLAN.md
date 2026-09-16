@@ -1028,14 +1028,28 @@ content width, each at the point where one more column would push cards under ~2
 
 | Container content | Columns | Viewport, rail beside (≥1100px) | Viewport, rail on top (<1100px) |
 |---|---|---|---|
-| ≥ 1280px | 5 | ≥ ~1580px | — |
-| 1020–1279px | 4 | ~1320–1580px | — |
-| 760–1019px | 3 | ~1100–1320px | ~860–1100px |
-| < 760px | 2 | — | 600–860px |
+| ≥ 1328px | 5 | ≥ ~1630px | — |
+| 1056–1327px | 4 | ~1355–1630px | — |
+| 784–1055px | 3 | ~1100–1355px | ~885–1100px |
+| < 784px | 2 | — | 600–885px |
 | (viewport < 600px) | 1 | — | < 600px |
 
-So a 1920px screen gets 5 at ~292px as decided, a 1440px laptop gets 4 at ~255px (5 would be ~200px),
-and the phone's art cap is `max-width: 400px` on the container rather than 200px.
+Steps are `n × 240 + (n − 1) × 32`: the column gap became **32px** (row gap stays 20px) in the
+post-test tweaks below, to make room for the group boxes' vertical labels. So a 1920px screen gets 5
+at ~282px, a 1440px laptop gets 4 at ~261px, and the phone's art cap is `max-width: 400px` on the
+tile rather than 200px.
+
+**Post-test tweaks, Harvey 2026-09-16** (after seeing the build — *"looking really smart"*):
+- Group labels (Loyal Companions, Signature Actions) run **vertically down the box's left edge**, not
+  as a top legend — a hovered card lifted over the legend. `fieldset`/`legend` became
+  `div[role=group]` + an absolutely positioned `.card-group-label`, since a rotated legend is not
+  reliably a legend.
+- **Talismans are a boxed group at the tail of the familiars row** (they spend the same ether), so
+  the Recruitment section is one grid with no `h3`s.
+- **Phone fix:** the group box shrink-wrapped under `justify-items: center` and its card collapsed —
+  `justify-self: stretch` on `.card-group`.
+- **The warnings box is removed** (Harvey: the trackers make it redundant). Export still refuses an
+  unattached talisman.
 
 #### 2. Reading the effects — DECIDED: option 1 only, desktop only
 

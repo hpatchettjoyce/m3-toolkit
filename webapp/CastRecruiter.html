@@ -122,51 +122,68 @@
 
         /* Responsive Grids. Explicit column counts, so the count is a decision rather than
            a side effect of a minimum width. Each step is where the next count up would
-           push cards under ~240px (n x 240 + (n - 1) x 20 gap); a 1600px container
-           (1540px content) gives five at ~292px. Phones (< 600px viewport) get one. */
+           push cards under ~240px (n x 240 + (n - 1) x 32 gap); a 1600px container
+           (1540px content) gives five at ~282px. Phones (< 600px viewport) get one.
+           The column gap is 32px, not 20px, because a .card-group's label strip draws
+           out into it - see below. */
         .card-grid {
             display: grid;
             --grid-cols: 5;
             grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
-            gap: 20px;
+            gap: 20px 32px;
             margin-top: 15px;
             margin-bottom: 30px;
             width: 100%;
         }
 
-        /* A boxed, labelled group at the head of a card row (Loyal Companions, Signature
-           Actions). It spans as many columns as it has cards - capped at the row's column
-           count, so a big group wraps inside its box rather than adding implicit columns -
-           and subgrids them, so its cards sit on the row's own tracks. Subgrid would still
-           narrow the edge cards by the box's border and padding, so negative margins cancel
-           them exactly (-11px = 1px border + 10px padding) and the box draws out into the
-           gap instead. The top margin does the same for the legend, which keeps the boxed
-           cards level with their neighbours. */
+        /* A boxed group of cards inside a row, labelled down its left edge: Loyal
+           Companions and Signature Actions at the head of their rows, Talismans at the tail
+           of the familiars row. It spans as many columns as it has cards - capped at the
+           row's column count, so a big group wraps inside its box rather than adding
+           implicit columns - and subgrids them, so its cards sit on the row's own tracks.
+
+           Subgrid would still narrow the edge cards by the box's border and padding, so
+           negative margins cancel them exactly (1px border + padding) and the box draws out
+           into the surrounding gap instead. The label strip is the 20px left padding: that
+           needs -21px, which the 32px column gap (and the container's 30px padding, for a
+           box in the first column) has room for. Top and bottom padding clear the hover
+           lift, so a raised card never covers the box's edge.
+
+           justify-self: stretch matters on the phone, where .card-grid centres its items:
+           without it the box shrink-wraps and its card collapses to almost nothing. */
         .card-group {
             --group-size: 1;
             grid-column: span min(var(--group-size), var(--grid-cols));
+            justify-self: stretch;
+            position: relative;
             display: grid;
             grid-template-columns: subgrid;
             row-gap: 20px;
             min-width: 0;
-            margin: -14px -11px -11px;
-            padding: 0 10px 10px;
+            margin: -9px -9px -9px -21px;
+            padding: 8px 8px 8px 20px;
             border: 1px solid var(--primary-colour);
             border-radius: 8px;
         }
 
-        /* Room above the row for the box's raised top edge and legend */
-        .card-grid:has(> .card-group:not(.hidden)) {
-            margin-top: 30px;
-        }
-
-        .card-group legend {
-            padding: 0 6px;
-            font-size: 0.75rem;
-            line-height: 14px;
+        /* Reads bottom to top, like a book spine */
+        .card-group-label {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-size: 0.7rem;
+            line-height: 1;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            white-space: nowrap;
             color: var(--heading-text-colour);
         }
 
@@ -410,16 +427,6 @@
             background-color: var(--field-bg);
         }
 
-        .warning-box {
-            background-color: var(--warning-bg);
-            color: var(--warning-colour);
-            padding: 15px;
-            border-radius: var(--radius);
-            margin-bottom: 25px;
-            display: none;
-            border: 1px solid var(--warning-border);
-        }
-
         .rail-actions {
             display: flex;
             flex-direction: column;
@@ -512,15 +519,15 @@
             }
         }
 
-        @container (max-width: 1279px) {
+        @container (max-width: 1327px) {
             .card-grid { --grid-cols: 4; }
         }
 
-        @container (max-width: 1019px) {
+        @container (max-width: 1055px) {
             .card-grid { --grid-cols: 3; }
         }
 
-        @container (max-width: 759px) {
+        @container (max-width: 783px) {
             .card-grid { --grid-cols: 2; }
         }
 
@@ -899,26 +906,18 @@
 
             <div id="recruitment-section" class="section hidden">
                 <h2>Recruitment</h2>
-                
-                <h3>Familiars & Minions</h3>
                 <div id="familiars-grid" class="card-grid">
-                    <fieldset id="loyal-grid" class="card-group hidden"><legend>Loyal Companions</legend></fieldset>
+                    <div id="loyal-grid" class="card-group hidden" role="group" aria-labelledby="loyal-label"><span id="loyal-label" class="card-group-label">Loyal Companions</span></div>
+                    <div id="talismans-grid" class="card-group hidden" role="group" aria-labelledby="talismans-label"><span id="talismans-label" class="card-group-label">Talismans</span></div>
                 </div>
-
-                <h3>Talismans</h3>
-                <div id="talismans-grid" class="card-grid"></div>
             </div>
 
             <div id="specials-section" class="section hidden">
                 <h2>Special Actions</h2>
                 
                 <div id="specials-grid" class="card-grid">
-                    <fieldset id="signature-grid" class="card-group hidden"><legend>Signature Actions</legend></fieldset>
+                    <div id="signature-grid" class="card-group hidden" role="group" aria-labelledby="signature-label"><span id="signature-label" class="card-group-label">Signature Actions</span></div>
                 </div>
-            </div>
-
-            <div id="warnings" class="warning-box">
-                <ul id="warnings-list" style="margin: 0; padding-left: 20px;"></ul>
             </div>
         </div>
     </div>
@@ -1014,8 +1013,6 @@
         specialsGrid: document.getElementById('specials-grid'),
         etherTracker: document.getElementById('ether-tracker'),
         specialsTracker: document.getElementById('specials-tracker'),
-        warningsBox: document.getElementById('warnings'),
-        warningsList: document.getElementById('warnings-list'),
         btnExport: document.getElementById('btn-export'),
         btnImportTop: document.getElementById('btn-import-top'),
         exportOutput: document.getElementById('export-output'),
@@ -1208,14 +1205,15 @@
     }
 
     function renderBasics() {
-        // Clears the basics but keeps the loyal group, which renderLoyals owns
-        els.familiarsGrid.replaceChildren(els.loyalGrid);
+        // Clears the basics but keeps the loyal and talisman groups at either end, which
+        // renderLoyals and renderTalismans own; basics go in between.
+        els.familiarsGrid.replaceChildren(els.loyalGrid, els.talismansGrid);
         if (!state.dominion || !state.champion) return;
 
         const basics = db.units.filter(u => u.dominion === state.dominion && !u.isLoyal && (u.class === 'Familiar' || u.class === 'Minion') && u.cost > 0);
         
         if (basics.length === 0) {
-            els.familiarsGrid.insertAdjacentHTML('beforeend', '<span class="empty-message">No basic familiars found.</span>');
+            els.talismansGrid.insertAdjacentHTML('beforebegin', '<span class="empty-message">No basic familiars found.</span>');
             return;
         }
 
@@ -1297,20 +1295,20 @@
                 updateTrackers();
             });
 
-            els.familiarsGrid.appendChild(buildCardTile(item, cardEl, qtyLabel));
+            els.familiarsGrid.insertBefore(buildCardTile(item, cardEl, qtyLabel), els.talismansGrid);
         });
     }
 
+    // Talismans render into a boxed group at the tail of the familiars grid - they spend
+    // from the same ether limit. No talismans means no box.
     function renderTalismans() {
-        els.talismansGrid.innerHTML = '';
+        resetCardGroup(els.talismansGrid, 0);
         if (!state.dominion || !state.champion) return;
 
         const talismans = db.units.filter(u => u.dominion === state.dominion && u.class === 'Talisman' && u.cost > 0);
         
-        if (talismans.length === 0) {
-            els.talismansGrid.innerHTML = '<span class="empty-message">No talismans found.</span>';
-            return;
-        }
+        if (talismans.length === 0) return;
+        resetCardGroup(els.talismansGrid, talismans.length);
 
         const currentEther = calculateCurrentEther();
 
@@ -1459,50 +1457,12 @@
 
         els.specialsTracker.textContent = `${currentSpecials} / ${MAX_SPECIALS}`;
         els.specialsTracker.style.color = currentSpecials === MAX_SPECIALS ? 'var(--success-colour)' : 'var(--warning-colour)';
-
-        evaluateWarnings(currentEther, currentSpecials);
     }
 
-    function evaluateWarnings(currentEther, currentSpecials) {
-        els.warningsList.innerHTML = '';
-        let hasWarnings = false;
-
-        if (state.dominion && state.champion) {
-            if (currentEther <= 35) {
-                const li = document.createElement('li');
-                li.textContent = `You are ${MAX_ETHER - currentEther} Ether away from the 40 limit.`;
-                els.warningsList.appendChild(li);
-                hasWarnings = true;
-            }
-
-            if (currentSpecials < MAX_SPECIALS) {
-                const li = document.createElement('li');
-                li.textContent = `You have only selected ${currentSpecials} of your 6 allowed Special Actions.`;
-                els.warningsList.appendChild(li);
-                hasWarnings = true;
-            }
-
-            let missingAttachments = false;
-            for (const talId in state.talismans) {
-                if (state.talismans[talId] === "") {
-                    missingAttachments = true;
-                }
-            }
-            if (missingAttachments) {
-                const li = document.createElement('li');
-                li.textContent = `You have recruited Talismans that are not attached to a Basic Familiar.`;
-                els.warningsList.appendChild(li);
-                hasWarnings = true;
-            }
-        }
-
-        els.warningsBox.style.display = hasWarnings ? 'block' : 'none';
-    }
-
-    // Empties a boxed card group down to its legend, sizes its span to the cards it is
+    // Empties a boxed card group down to its label, sizes its span to the cards it is
     // about to hold, and hides it when that is none.
     function resetCardGroup(group, size) {
-        group.replaceChildren(group.querySelector('legend'));
+        group.replaceChildren(group.querySelector('.card-group-label'));
         group.style.setProperty('--group-size', size);
         group.classList.toggle('hidden', size === 0);
     }
