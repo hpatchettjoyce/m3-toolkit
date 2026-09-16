@@ -1016,14 +1016,14 @@ art cap raised, since one card per row can afford to be large.
 The art is a **sprite-sheet slice**, not a per-card image: `getCardStyle()` (`:1374`) sets
 `background-size: ${cols*100}% ${rows*100}%` and a percentage `background-position`. That matters
 twice over — there is no bigger version of the art to swap in, but the same trick zooms to any
-factor by scaling both numbers. These are the five, most-recommended first:
+factor by scaling both numbers. The five considered, as originally ranked — **only 1 is being built**:
 
 1. **Caption under the tile (recommended, and what item 3 asks for).** The tile becomes a
    contact-sheet `figure`: art flush on top, a text box beneath carrying
    `formatRulesText(card.effect)`. Live HTML text at whatever size we choose, so the art never has
    to be legible at all. Reuses the existing data and the existing formatter; nothing new to build
    or maintain. Costs vertical space per tile — which item 5 is separately clawing back.
-2. **Hover / focus zoom (recommended as the companion to 1).** On hover or keyboard focus, a fixed
+2. **Hover / focus zoom** *(rejected — see below)*. On hover or keyboard focus, a fixed
    panel shows the same slice at ~3× with the effects as text beside it. Cheap, because the sprite
    maths already supports it: multiply both `background-size` percentages by the zoom factor. Needs
    a focus trigger as well as hover, and does nothing on touch — acceptable, since Harvey scoped
@@ -1176,7 +1176,7 @@ rather than chased.
 characters and no need for the additional ether cast UI element. Instead I'll add a 'ETHER(4):' tag
 at the front of the effect to cover the cost."*
 
-**He has already re-exported, and the working tree holds it** (uncommitted when this was written).
+**He has already re-exported, and it is committed** (`2e1c688`).
 The diff is one row — `03VOI-01CHP-0068` Lark, effect `TRICK SHOT`:
 
 | | Before | After |
