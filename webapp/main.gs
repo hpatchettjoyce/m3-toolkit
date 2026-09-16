@@ -288,7 +288,7 @@ var CAST_REQUIRED_COLUMNS = [
 
 // Passed through for whoever wants them later; nothing consumes these today, so
 // a missing one degrades to "" with a warning instead of taking the app down.
-var CAST_OPTIONAL_COLUMNS = ["Keywords", "Artwork", "Flavour"];
+var CAST_OPTIONAL_COLUMNS = ["Keywords", "Flavour"];
 
 var CAST_UNIT_CLASSES = { "Familiar": true, "Minion": true, "Talisman": true };
 
@@ -405,8 +405,7 @@ function getCardDatabase() {
       effect2Type: cell(row, "Effect Type 2"),
       effect2Details: cell(row, "Effect Details 2"),
       keywords: cell(row, "Keywords"),
-      flavourText: cell(row, "Flavour"),
-      artwork: cell(row, "Artwork")
+      flavourText: cell(row, "Flavour")
     });
   }
 
@@ -460,7 +459,6 @@ function getCardDatabase() {
       effect2Details: record.effect2Details,
       keywords: record.keywords,
       flavourText: record.flavourText,
-      artwork: record.artwork,
       image: artByCardId.hasOwnProperty(record.id) ? artByCardId[record.id] : null
     };
   };

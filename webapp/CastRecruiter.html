@@ -253,7 +253,7 @@
             overflow-wrap: anywhere;
         }
 
-        /* A dice symbol inline in rules text. It takes the colour of the text around it
+        /* An icon inline in rules text. It takes the colour of the text around it
            (currentColor); the Solid dice's cut-out is painted the caption's own ground. */
         .rules-icon {
             display: inline-block;
@@ -262,6 +262,15 @@
             vertical-align: -0.22em;
             margin: 0 0.05em;
             --icon-cutout-colour: var(--surface-bg);
+        }
+
+        /* The stat and ether icons carry a number inside the shape, so they get 1.5x the
+           dice size to stay legible; the offset keeps them centred on the text. */
+        .rules-icon--prowess,
+        .rules-icon--fortitude,
+        .rules-icon--ether {
+            height: 1.725em;
+            vertical-align: -0.5em;
         }
 
         /* Card-level keywords (RANGE(5), STEALTH, ...), a teal bar below the effects - the
@@ -1892,7 +1901,7 @@
         const symbol = icons && document.getElementById(iconSymbolId(type, stem));
         if (!symbol) return `<strong>[${label}]</strong>`;
         // Carry the symbol's viewBox so the icon sizes to its own shape (the stat icons are wider than the dice)
-        return `<svg class="rules-icon" viewBox="${symbol.getAttribute('viewBox')}" role="img" aria-label="${label}">`
+        return `<svg class="rules-icon rules-icon--${type.toLowerCase().replace(/[^a-z0-9]+/g, '-')}" viewBox="${symbol.getAttribute('viewBox')}" role="img" aria-label="${label}">`
             + `<use href="#${symbol.id}"/></svg>`;
     }
 
