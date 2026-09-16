@@ -3,12 +3,12 @@
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
 **Status:** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS; **6 and 7 (branding) seen
 in the browser 2026-09-16 — Harvey: "does look better but it can be improved"**, and the six
-improvements he raised are specced as **Chunk 8, which is next** (Chunk 3 is withdrawn, D11). The
-one known failure is the favicon: `setFaviconUrl` errored "not supported", now Chunk 8 item 7. The
-CSV was re-exported 2026-09-16 with Lark's ether cost moved into the effect text (**D12**, which
-supersedes D10); the validator passes on it. The validator passes clean, the compiler
-emits an ID-keyed `CardImages.gs` with all 200 cards, and `main.gs` serves all 200 from the single
-`IN Cast` tab with art looked up by card ID.
+improvements he raised are specced as **Chunk 8, which is next — fully decided, nothing open**
+(Chunk 3 is withdrawn, D11). The favicon's "not supported" error no longer crashes the app (try/catch
+deployed and confirmed); whether the icon displays is Chunk 8 item 7. The CSV was re-exported
+2026-09-16 with Lark's ether cost moved into the effect text (**D12**, superseding D10). The
+validator passes clean, the compiler emits an ID-keyed `CardImages.gs` with all 200 cards, and
+`main.gs` serves all 200 from the single `IN Cast` tab with art looked up by card ID.
 Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
 **Still untested:** roster export / re-import, the path most exposed to the `champ_<index>` -> card-ID
 change.
@@ -982,7 +982,7 @@ the container gets wider on large screens:
 | **1600px** | 1540px | **292px** | **+12%** |
 | 1760px | 1700px | 324px | +25% |
 
-**Recommendation: widen to 1600px, drop the `260px` cap on `.visual-card`, and make the tracker
+**DECIDED 2026-09-16 (Harvey: yes): widen to 1600px, drop the `260px` cap on `.visual-card`, and make the tracker
 widget a laid-out right rail rather than a fixed overlay** (which item 6 wants anyway). That gives 5
 across at ~292px — bigger than today's 4 across at 260px — and it is the only version of this that
 survives a 1680px screen.
@@ -1150,8 +1150,9 @@ refused. So the fault is almost certainly the URL, not the call.
 **Already fixed: the failure can no longer kill the app.** Anything thrown inside `doGet()` escapes
 it and the page never renders at all, so a rejected favicon URL was taking down the whole web app
 rather than just dropping the icon. `setFaviconUrl` is now wrapped in a try/catch that warns to the
-execution log (`main.gs:48-54`). Harvey's URL is left in place, so a re-push shows whether it works
-with the crash risk removed.
+execution log (`main.gs:48-54`). Harvey's URL is left in place. **Deployed and confirmed
+2026-09-16:** Harvey re-pushed — *"the favicon crash is resolved."* Whether the Drive URL actually
+shows an icon was not reported; if it doesn't, the step below is next.
 
 **Next, if the icon still doesn't appear:** use a direct URL ending in `.png`. This repo is public
 on GitHub, so committing a square logomark to `assets/branding/` gives one for free:
@@ -1289,13 +1290,10 @@ byte-for-byte the same as before the chunk.
 **Decided 2026-09-16:** item 2 is **option 1 alone**, caption hidden below 600px; the quantity badge
 **moves into the caption box**; and item 8 records the `**ETHER(N)**:` convention.
 
-**Still open — one decision, and it changes the build:**
-
-1. **Container width on large screens, and with it whether the tracker widget becomes a laid-out
-   right rail** (recommendation: yes to both — 1600px wide with a real rail gives 5 across at
-   ~292px, bigger than today's 4 across at 260px). Keeping the fixed overlay caps how wide the
-   content can safely get, and on a 1680px screen forces the cards *smaller* than today. Item 6
-   pushes the same way, since the print/export buttons are moving into that widget.
+**Also decided 2026-09-16 — the last open question:** the container widens to **1600px** and the
+tracker widget becomes a **laid-out right rail** (not a `position: fixed` overlay), with the
+print/export buttons from item 6 living in it. Harvey: *"I think I understand this and yes."* That
+gives 5 across at ~292px. **Nothing in Chunk 8 is open any more.**
 
 **Also decided 2026-09-16:** no presence check for `ETHER(N)` tags (item 8) — the silent-drop risk
 is accepted. The validator gets a format check only.
