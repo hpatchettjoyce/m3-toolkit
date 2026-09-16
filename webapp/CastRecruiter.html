@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monumentum Cast Recruiter</title>
-    <!-- Cinzel is the brand guide's one specified face ("LOGO TYPEFACE", PG.07). It is an
-         OFL Google Font, so it can be linked rather than licensed. Everything below falls
-         back to a real stack if the request fails -- see --font-display. -->
+    <!-- Cinzel is the brand guide's one specified face ("LOGO TYPEFACE", PG.07). Montserrat,
+         the body face, is Harvey's choice - the guide specifies none. Both are OFL Google
+         Fonts, so they can be linked rather than licensed, and share one request. Everything
+         below falls back to a real stack if the request fails -- see --font-display/-body. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
@@ -63,7 +64,7 @@
                paper-facing .print-card* rules keep Arial deliberately, because a webfont
                that fails to load must not change a card's metrics. */
             --font-display: 'Cinzel', 'Trajan Pro', Georgia, 'Times New Roman', serif;
-            --font-body: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --font-body: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
             /* The logo's own gold, from the supplied SVG. Deliberately NOT
                --accent-colour: the guide's asset is #eea145 and the palette page's
@@ -351,6 +352,10 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
+        }
+
+        select, button, textarea, input {
+            font-family: inherit;
         }
 
         select, button, textarea {
