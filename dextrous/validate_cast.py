@@ -26,7 +26,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CSV = REPO_ROOT / "M3_TTS_DB - Cast.csv"
-DEFAULT_DECK = REPO_ROOT / "dextrous" / "MonuMentuM 14-09-2026.json"
+# The deck defaults to the newest Dextrous export, found the same way the compiler finds it,
+# so a new `MonuMentuM DD-MM-YYYY.json` is checked without anyone passing --deck.
+DECK_DIR = REPO_ROOT / "dextrous"
 
 # --- expectations -----------------------------------------------------------------
 
@@ -696,8 +698,15 @@ def check_deck(path: Path, csv_row_count: int, report: Report) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV, help=f"default: {DEFAULT_CSV.name}")
-    parser.add_argument("--deck", type=Path, default=DEFAULT_DECK, help=f"default: {DEFAULT_DECK.name}")
+    parser.add_argument("--deck", type=Path, default=None, help="default: newest 'MonuMentuM *.json' in dextrous/")
     args = parser.parse_args(argv)
+    if args.deck is None:
+        from generate_card_images import CompileError, find_deck
+        try:
+            args.deck = find_deck(DECK_DIR)
+        except CompileError as exc:
+            print(f"FAILED — {exc}")
+            return 1
 
     report = Report()
     print(f"Validating {args.csv.name} against {args.deck.name}")

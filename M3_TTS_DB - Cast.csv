@@ -225,7 +225,7 @@ When any ally performs an *attack* against an *tangled* enemy, that ally becomes
 0164,Lignify,Ahèserec,SPECIAL ACTION,,,05AHE-07SPA-0164,,,"An ally adjacent to an ally minion gains **REINFORCE({M3/Icons/Dice/Void Circle.svg})** until your next prologue, then defeat the ally minion.",,,,,5,,,".png,70,0,100",,,,,#REINFORCE
 0165,Verdant Coil,Ahèserec,SPECIAL ACTION,,,05AHE-07SPA-0165,,,"An ally minion performs the following *free action*:
 An adjacent enemy becomes **ROOTED** until after their next activation, then remove this character as defeated.",,,,RESERVE(2),4,,,".png,50,0,100",,,,,#ROOTED
-0166,Bough Strike,Ahèserec,SPECIAL ACTION,,,05AHE-07SPA-0166,,,"All allies within AURA(3) of your champion gain the following *free attack reaction* until your next prologue:
+0166,Bough Strike,Ahèserec,SPECIAL ACTION,,,05AHE-07SPA-0166,,,"All **THICKETWAY** allies within AURA(3) of your champion gain the following *free attack reaction* until your next prologue:
 When an enemy performs a *manoeuvre* on an adjacent space, this character may perform an **ATTACK** against that enemy.",,,,,6,,,".png,50,0,100",,,,,#Intercept
 0167,Burgeon,Ahèserec,SPECIAL ACTION,,,05AHE-07SPA-0167,,,Summon a recharged defeated familiar with **THICKETWAY** to the location of an ally minion. Then remove this minion as defeated. X is the cost of the summoned familiar minus 3.,,,,,X,,,".png,50,0,100",,,,,"#Ether Discount, ~Minion"
 0168,Patience Wick,Veritian,CHAMPION,,,06VER-01CHP-0168,ECHO,FREE ACTION,"An ally within **AURA(10)** becomes in ""Dynamis"".

@@ -153,21 +153,9 @@ Tabletop Simulator scripts automate setup, layout physics, board deployment, and
 
 ## ⚙️ Developer Workflows & Content Updates
 
-When card values, rules, or image assets are added or modified:
-
-1.  **Export Sheet Data**: Export the latest spreadsheet tabs to CSV format, saving them in the project root as `M3_TTS_DB - IN Cha-Tal.csv` and `M3_TTS_DB - IN SP.csv`.
-2.  **Export Saved Objects**: Export the latest character and special deck Saved Object files from Tabletop Simulator into the `dextrous/` folder.
-3.  **Compile & Inject Metadata**: Run the compiler script:
-    ```powershell
-    python dextrous/generate_card_images.py
-    ```
-    This updates `webapp/CardImages.gs` with coordinate definitions, auto-generates deterministic unique IDs (`SYN-` prefix) for any cards lacking them, and injects clean Names (`Nickname`) and Unique IDs (`GMNotes`) into the deck JSON files.
-4.  **Push Web App Code**: Deploy changes to Google Apps Script via clasp:
-    ```powershell
-    cd webapp
-    clasp push
-    ```
-5.  **Import in Tabletop Simulator**: Import the processed Saved Object JSON files back into Tabletop Simulator. The import automation and physical models will now resolve with unique ID-based actions.
+See **[`UPDATING.md`](UPDATING.md)**: which script to run for a new CSV, a new Dextrous export, a new
+icon or a colour change, and how to deploy the web app and the TTS side. (The two-CSV workflow that
+used to be here is retired; the cast is one `IN Cast` tab now.)
 
 ---
 

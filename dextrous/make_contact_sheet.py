@@ -31,7 +31,8 @@ from collections import Counter
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-DEFAULT_DECK = REPO / "dextrous" / "MonuMentuM 14-09-2026.json"
+# Newest Dextrous export by default, found the same way the compiler finds it
+DECK_DIR = REPO / "dextrous"
 DEFAULT_OUT = REPO / "dextrous" / "contact_sheet.html"
 
 VERIFYCACHE = "{verifycache}"
@@ -148,9 +149,17 @@ def build(cards: list[dict], sheets: dict) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--deck", type=Path, default=DEFAULT_DECK)
+    ap.add_argument("--deck", type=Path, default=None, help="default: newest 'MonuMentuM *.json' in dextrous/")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = ap.parse_args()
+    if args.deck is None:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from generate_card_images import CompileError, find_deck
+        try:
+            args.deck = find_deck(DECK_DIR)
+        except CompileError as exc:
+            print(f"  contact sheet: {exc}", file=sys.stderr)
+            return 1
 
     try:
         cards, sheets = load_cards(args.deck)

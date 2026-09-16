@@ -8,11 +8,14 @@ Maleperduis footer, Montserrat Light) — Harvey has browser-tested it round by 
 smart"), but **the last three rounds (icon tokens, 1.5x stat icons, ±X icons) are not yet seen**.
 Chunk 3 is withdrawn (D11). The validator passes clean on the current export (no `Artwork` column;
 icon tokens `{Icon:{M3/Icons/…}}`; D12's ether cost is now an Ether Cost icon).
-**Left to do:** (1) browser pass of the latest rounds; (2) item 7 — does the GitHub `favicon.png`
-show in the tab? drop the item if not; (3) decide whether print cards get icons or keep
-`[PROWESS +1]` text; (4) **roster export / re-import still untested** end to end — the import path
-also now interacts with auto-selecting the first champion; (5) §7 — `PROJECT_NOTES.md` still
-documents the retired two-tab architecture.
+**Harvey, 2026-09-16 (late):** favicon shows (item 7 done); ±X icons show; exported cast lists
+still import into TTS. Stat/ether icons were still hard to read → raised to 2x dice size
+(`--stat-icon-size: 2.3em`), not yet seen. **`UPDATING.md`** added: the human-run update steps.
+**Left to do:** (1) confirm the 2x stat/ether icons are readable (tune `--stat-icon-size`);
+(2) decide whether print cards get icons or keep `[PROWESS +1]` text; (3) web-app *re-import* of an
+exported cast (Import Cast JSON button) not explicitly confirmed — TTS import is; (4) §7 —
+`PROJECT_NOTES.md` still describes the two-tab architecture in its architecture/component sections
+(`:13 :80 :105`); its workflow section now points to `UPDATING.md`.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---

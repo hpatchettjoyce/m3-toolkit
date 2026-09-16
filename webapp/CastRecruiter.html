@@ -264,13 +264,15 @@
             --icon-cutout-colour: var(--surface-bg);
         }
 
-        /* The stat and ether icons carry a number inside the shape, so they get 1.5x the
-           dice size to stay legible; the offset keeps them centred on the text. */
+        /* The stat and ether icons carry a number inside the shape, so they are drawn larger
+           than the dice. --stat-icon-size is the one knob (dice are 1.15em); the offset keeps
+           the icon centred on the line of text at any size. */
         .rules-icon--prowess,
         .rules-icon--fortitude,
         .rules-icon--ether {
-            height: 1.725em;
-            vertical-align: -0.5em;
+            --stat-icon-size: 2.3em;
+            height: var(--stat-icon-size);
+            vertical-align: calc((var(--stat-icon-size) - 0.7em) / -2);
         }
 
         /* Card-level keywords (RANGE(5), STEALTH, ...), a teal bar below the effects - the

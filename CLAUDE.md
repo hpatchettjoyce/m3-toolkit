@@ -65,6 +65,8 @@ Expected `getCardDatabase()` schema:
 
 ## Deployment
 
+**Human-facing update steps (which script, when, why) live in `UPDATING.md` — keep it in step with any script change.**
+
 1. Open the bound Google Spreadsheet → **Extensions > Apps Script**.
 2. Copy the contents of `webapp/*.gs` and `webapp/CastRecruiter.html` into the Apps Script editor (or `clasp push` from `webapp/`).
 3. **Redeploy without changing the public URL** — `clasp deploy -i <deploymentId>` repoints the
