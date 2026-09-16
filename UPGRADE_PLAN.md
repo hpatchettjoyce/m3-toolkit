@@ -3,7 +3,8 @@
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
 **Status:** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS; **6 and 7 (branding) seen
 in the browser 2026-09-16 — Harvey: "does look better but it can be improved"**, and the six
-improvements he raised are specced as **Chunk 8, which is next — fully decided, nothing open**
+improvements he raised are specced as **Chunk 8 — built 2026-09-16 (items 1–6, 8; commits
+`773eae8`..`5ec799e`), not yet seen in a browser; item 7 waits on whether the favicon shows**
 (Chunk 3 is withdrawn, D11). The favicon's "not supported" error no longer crashes the app (try/catch
 deployed and confirmed); whether the icon displays is Chunk 8 item 7. The CSV was re-exported
 2026-09-16 with Lark's ether cost moved into the effect text (**D12**, superseding D10). The
