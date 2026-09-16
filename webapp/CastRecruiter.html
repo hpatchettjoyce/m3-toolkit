@@ -345,15 +345,30 @@
             border: 1px solid var(--warning-border);
         }
 
+        .rail-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .btn-print,
         .btn-export {
-            background-color: var(--accent-colour);
             color: var(--on-fill-colour);
-            font-size: 1.15rem;
+            font-size: 1rem;
             font-weight: bold;
             border: none;
             cursor: pointer;
+            padding: 10px;
             transition: background-color 0.2s;
-            margin-bottom: 15px;
+        }
+
+        .btn-print {
+            background-color: var(--primary-strong-colour);
+        }
+
+        .btn-export {
+            background-color: var(--accent-colour);
         }
 
         .btn-export:hover {
@@ -407,6 +422,18 @@
             }
             #ether-tracker, #specials-tracker {
                 font-size: 1.1rem;
+            }
+            .status-rail {
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .rail-actions {
+                flex-direction: row;
+                margin-top: 0;
+            }
+            .btn-print, .btn-export {
+                width: auto;
+                padding: 8px 14px;
             }
         }
 
@@ -814,14 +841,6 @@
             <div id="warnings" class="warning-box">
                 <ul id="warnings-list" style="margin: 0; padding-left: 20px;"></ul>
             </div>
-
-            <div class="section">
-                <div style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button id="btn-print" class="btn-print" style="background-color: var(--primary-strong-colour); color: var(--on-fill-colour); font-weight: bold; font-size: 1.15rem; border: none; cursor: pointer; border-radius: var(--radius); padding: 12px; flex: 1; min-width: 140px; transition: background-color 0.2s;">Print Cards</button>
-                    <button id="btn-export" class="btn-export" style="margin-bottom: 0; flex: 1; min-width: 140px;">Export Cast</button>
-                </div>
-                <textarea id="export-output" readonly placeholder="Your exported JSON will appear here..."></textarea>
-            </div>
         </div>
     </div>
 </div>
@@ -834,6 +853,10 @@
     <div class="status-item">
         <span class="status-label">Specials Limit</span>
         <span id="specials-tracker">0 / 6</span>
+    </div>
+    <div class="rail-actions">
+        <button id="btn-print" class="btn-print">Print Cards</button>
+        <button id="btn-export" class="btn-export">Export Cast</button>
     </div>
 </aside>
 </div>
@@ -861,6 +884,19 @@
         <div style="display: flex; gap: 10px; margin-top: 15px;">
             <button id="btn-submit-import" style="background-color: var(--success-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Load Cast</button>
             <button id="btn-cancel-import" style="background-color: var(--neutral-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal Dialog: the counterpart of the import modal -->
+<div id="export-modal" class="import-modal hidden">
+    <div class="import-modal-content">
+        <h3>Export Cast JSON</h3>
+        <p id="export-status" style="font-size: 0.9rem; color: var(--subtle-text-colour); margin-top: 0; margin-bottom: 15px;"></p>
+        <textarea id="export-output" readonly></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button id="btn-copy-export" style="background-color: var(--success-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Copy</button>
+            <button id="btn-close-export" style="background-color: var(--neutral-colour); color: var(--on-fill-colour); font-weight: bold; border: none; cursor: pointer; border-radius: var(--radius); padding: 10px; flex: 1;">Close</button>
         </div>
     </div>
 </div>
@@ -905,6 +941,10 @@
         btnExport: document.getElementById('btn-export'),
         btnImportTop: document.getElementById('btn-import-top'),
         exportOutput: document.getElementById('export-output'),
+        exportModal: document.getElementById('export-modal'),
+        exportStatus: document.getElementById('export-status'),
+        btnCopyExport: document.getElementById('btn-copy-export'),
+        btnCloseExport: document.getElementById('btn-close-export'),
         statusWidget: document.getElementById('status-widget'),
         btnPrint: document.getElementById('btn-print'),
         printOverlay: document.getElementById('print-overlay'),
@@ -1489,21 +1529,28 @@
             specialIds: exportSpecialIds
         };
 
-        const jsonString = JSON.stringify(exportData, null, 2);
-        els.exportOutput.value = jsonString;
+        els.exportOutput.value = JSON.stringify(exportData, null, 2);
+        els.exportModal.classList.remove('hidden');
+        copyExport();
+    });
 
-        navigator.clipboard.writeText(jsonString).then(() => {
-            const originalText = els.btnExport.textContent;
-            els.btnExport.textContent = 'Copied to Clipboard!';
-            els.btnExport.style.backgroundColor = 'var(--success-colour)';
-            
-            setTimeout(() => {
-                els.btnExport.textContent = originalText;
-                els.btnExport.style.backgroundColor = 'var(--accent-colour)';
-            }, 3000);
-        }).catch(err => {
-            alert("Failed to copy to clipboard automatically. You can copy the text manually from the box.");
+    // The text stays in the modal either way, so a refused clipboard write
+    // (common inside the Apps Script iframe) just means copying by hand.
+    function copyExport() {
+        els.exportStatus.textContent = 'Copying to clipboard...';
+        navigator.clipboard.writeText(els.exportOutput.value).then(() => {
+            els.exportStatus.textContent = 'Copied to clipboard. Share it, then paste it into "Import Cast JSON" to load it.';
+        }).catch(() => {
+            els.exportStatus.textContent = 'Could not copy automatically. Select the text below and copy it by hand.';
+            els.exportOutput.focus();
+            els.exportOutput.select();
         });
+    }
+
+    els.btnCopyExport.addEventListener('click', copyExport);
+
+    els.btnCloseExport.addEventListener('click', () => {
+        els.exportModal.classList.add('hidden');
     });
 
     // Printer-friendly Cards Generation
