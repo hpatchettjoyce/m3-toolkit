@@ -110,8 +110,13 @@ def main() -> int:
     symbols = []
     for symbol_id, path in referenced_icons() + FIXED_ASSETS:
         if not path.exists():
-            print(f"FAILED — missing asset {path.relative_to(REPO)}", file=sys.stderr)
-            return 1
+            if (symbol_id, path) in FIXED_ASSETS:
+                print(f"FAILED — missing asset {path.relative_to(REPO)}", file=sys.stderr)
+                return 1
+            # A token with no file is usually a typo in the sheet. Skip it rather than
+            # embed nothing: the page shows it as [TEXT], and validate_cast.py names it.
+            print(f"WARNING — skipped, no such icon: {path.relative_to(REPO)}", file=sys.stderr)
+            continue
         symbols.append(to_symbol(symbol_id, path.read_text(encoding="utf-8")))
 
     block = "\n".join([

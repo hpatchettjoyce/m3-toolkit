@@ -36,14 +36,9 @@ EXPECTED_HEADER = [
     "#", "Name", "Dominion", "Class", "Role", "Role Details", "ID",
     "Effect Name 1", "Effect Type 1", "Effect Details 1",
     "Effect Name 2", "Effect Type 2", "Effect Details 2",
-    "Keywords", "Ether", "Prowess", "Fortitude", "Artwork", "#Artwork Config",
+    "Keywords", "Ether", "Prowess", "Fortitude", "#Artwork Config",
     "Flavour", "Lore", "Name Inspiration", "Art Direction", "Mechanic(s)",
 ]
-
-# Columns Harvey has removed from the sheet that an older export still carries. The
-# header matches with or without them, so neither the committed CSV nor the next
-# re-export fails; nothing reads them. Drop the entry once no export in use has it.
-RETIRED_COLUMNS = {"Artwork"}  # removed 2026-09-16; card art comes from CardImages.gs
 
 # §2.1. Bump this when cards are genuinely added -- a mismatch means either a stale
 # export or a roster change nobody recorded, and both deserve a loud failure.
@@ -390,7 +385,7 @@ def load_csv(path: Path, report: Report) -> list[dict] | None:
             report.fail("csv header", f"{path.name} is empty")
             return None
         header = [cell.strip() for cell in header]
-        if [c for c in header if c not in RETIRED_COLUMNS] != [c for c in EXPECTED_HEADER if c not in RETIRED_COLUMNS]:
+        if header != EXPECTED_HEADER:
             missing = [c for c in EXPECTED_HEADER if c not in header]
             unexpected = [c for c in header if c not in EXPECTED_HEADER]
             detail = []
