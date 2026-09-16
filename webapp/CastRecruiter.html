@@ -132,45 +132,81 @@
             width: 100%;
         }
 
-        /* Card Container (Wraps visual card + sub-controls like talisman selects) */
-        .card-container {
+        /* Card tile, after dextrous/contact_sheet.html: art flush to the edges, caption
+           beneath. overflow: hidden is what makes the art flush, so nothing may overhang
+           the tile - that is why the quantity badge sits in the caption. Selection is a
+           box-shadow ring, which takes no layout space, so selecting doesn't nudge the grid. */
+        .card-tile {
+            margin: 0;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-        }
-
-        /* Visual Card */
-        .visual-card {
-            width: 100%;
-            aspect-ratio: 1 / 1.4;
-            border-radius: var(--radius);
-            background-repeat: no-repeat;
-            background-color: var(--card-back-colour);
-            border: 3px solid transparent;
-            cursor: pointer;
+            background: var(--surface-bg);
+            border: 1px solid var(--border-colour);
+            border-radius: 8px;
+            overflow: hidden;
             box-sizing: border-box;
-            position: relative;
-            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 8px rgba(var(--shadow-rgb), 0.15);
         }
 
-        .visual-card:hover {
+        .card-tile:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 16px rgba(var(--shadow-rgb), 0.25);
         }
 
-        .visual-card.selected {
-            border-color: var(--accent-colour);
-            box-shadow: 0 0 12px var(--accent-colour);
+        .card-tile:has(> .visual-card.selected) {
+            box-shadow: 0 0 0 3px var(--accent-colour), 0 0 12px var(--accent-colour);
         }
 
-        /* Qty Input on Basic Familiars */
+        /* Visual Card: the art itself, and the click target */
+        .visual-card {
+            width: 100%;
+            aspect-ratio: 5 / 7;
+            background-repeat: no-repeat;
+            background-color: var(--card-back-colour);
+            cursor: pointer;
+        }
+
+        .card-caption {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 12px 12px;
+            border-top: 1px solid var(--border-colour);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .card-caption-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .card-caption-text {
+            color: var(--text-colour);
+            overflow-wrap: anywhere;
+        }
+
+        .card-caption-text strong {
+            color: var(--heading-text-colour);
+        }
+
+        /* Quantity on Basic Familiars: a labelled control, not a floating badge */
+        .card-qty {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: var(--muted-text-colour);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
         .card-qty-input {
-            position: absolute;
-            top: -8px;
-            right: -8px;
             width: 32px;
             height: 32px;
             background-color: var(--accent-colour);
@@ -180,9 +216,6 @@
             text-align: center;
             font-weight: bold;
             font-size: 0.9rem;
-            box-shadow: 0 2px 5px rgba(var(--shadow-rgb), 0.3);
-            z-index: 10;
-            outline: none;
             cursor: pointer;
             box-sizing: border-box;
             -webkit-appearance: none;
@@ -238,7 +271,7 @@
         /* Talisman Dropdown styling */
         .talisman-select {
             width: 100%;
-            max-width: 170px;
+            margin: 0;
             padding: 6px;
             font-size: 0.8rem;
             border-radius: var(--radius);
@@ -455,8 +488,16 @@
                 grid-template-columns: minmax(0, 1fr);
                 justify-items: center;
             }
-            .card-container {
+            .card-tile {
                 max-width: 400px;
+            }
+            /* The art is large enough to read at one per row, so the ability text goes.
+               The control row stays: quantity has to be settable on a phone. */
+            .card-caption-text {
+                display: none;
+            }
+            .card-caption:not(:has(.card-caption-controls)) {
+                display: none;
             }
         }
 
@@ -1026,8 +1067,6 @@
         const availableChamps = db.champions.filter(c => c.dominion === state.dominion);
         
         availableChamps.forEach(champ => {
-            const container = document.createElement('div');
-            container.className = 'card-container';
 
             const isSelected = state.champion === champ.id;
             
@@ -1051,8 +1090,7 @@
                 els.specialsSection.classList.remove('hidden');
             });
 
-            container.appendChild(cardEl);
-            els.championGrid.appendChild(container);
+            els.championGrid.appendChild(buildCardTile(champ, cardEl));
         });
 
         // Hide recruitment if champ is cleared
@@ -1101,8 +1139,6 @@
         const currentEther = calculateCurrentEther();
 
         loyals.forEach(item => {
-            const container = document.createElement('div');
-            container.className = 'card-container';
 
             const isSelected = state.familiars.hasOwnProperty(item.id);
             const cost = item.cost || 0;
@@ -1130,8 +1166,7 @@
                 updateTrackers();
             });
 
-            container.appendChild(cardEl);
-            els.loyalGrid.appendChild(container);
+            els.loyalGrid.appendChild(buildCardTile(item, cardEl));
         });
     }
 
@@ -1149,8 +1184,6 @@
         const currentEther = calculateCurrentEther();
 
         basics.forEach(item => {
-            const container = document.createElement('div');
-            container.className = 'card-container';
 
             const qty = state.familiars[item.id] || 0;
             const cost = item.cost || 0;
@@ -1161,7 +1194,7 @@
             cardEl.style.cssText = getCardStyle(item);
             cardEl.setAttribute('title', `${item.name} (Cost: ${cost} Ether)`);
 
-            // Qty input badge
+            // Qty input badge, in the caption's control row
             const qtyInput = document.createElement('input');
             qtyInput.type = 'number';
             qtyInput.className = 'card-qty-input';
@@ -1200,7 +1233,9 @@
                 updateTrackers();
             });
 
-            cardEl.appendChild(qtyInput);
+            const qtyLabel = document.createElement('label');
+            qtyLabel.className = 'card-qty';
+            qtyLabel.append('Qty', qtyInput);
 
             cardEl.addEventListener('click', () => {
                 let nextQty = (qty + 1) % 4; // Cycles: 0 -> 1 -> 2 -> 3 -> 0
@@ -1224,8 +1259,7 @@
                 updateTrackers();
             });
 
-            container.appendChild(cardEl);
-            els.familiarsGrid.appendChild(container);
+            els.familiarsGrid.appendChild(buildCardTile(item, cardEl, qtyLabel));
         });
     }
 
@@ -1243,8 +1277,6 @@
         const currentEther = calculateCurrentEther();
 
         talismans.forEach(talisman => {
-            const container = document.createElement('div');
-            container.className = 'card-container';
 
             const isSelected = state.talismans.hasOwnProperty(talisman.id);
             const cost = talisman.cost || 0;
@@ -1271,10 +1303,9 @@
                 updateTrackers();
             });
 
-            container.appendChild(cardEl);
-
+            let selectEl = null;
             if (isSelected) {
-                const selectEl = document.createElement('select');
+                selectEl = document.createElement('select');
                 selectEl.className = 'talisman-select';
                 selectEl.setAttribute('data-talisman-id', talisman.id);
                 
@@ -1296,11 +1327,9 @@
                     state.talismans[talisman.id] = e.target.value;
                     updateTrackers();
                 });
-
-                container.appendChild(selectEl);
             }
 
-            els.talismansGrid.appendChild(container);
+            els.talismansGrid.appendChild(buildCardTile(talisman, cardEl, selectEl));
         });
     }
 
@@ -1356,8 +1385,6 @@
 
         // Helper to render an action card into a specific grid
         const renderActionCard = (action, grid) => {
-            const container = document.createElement('div');
-            container.className = 'card-container';
 
             const isSelected = state.specials.includes(action.id);
             const canCheck = isSelected || state.specials.length < MAX_SPECIALS;
@@ -1383,8 +1410,7 @@
                 updateTrackers();
             });
 
-            container.appendChild(cardEl);
-            grid.appendChild(container);
+            grid.appendChild(buildCardTile(action, cardEl));
         };
 
         signatureSpecials.forEach(action => renderActionCard(action, els.signatureGrid));
@@ -1438,6 +1464,37 @@
         }
 
         els.warningsBox.style.display = hasWarnings ? 'block' : 'none';
+    }
+
+    // The contact-sheet tile: art flush on top, and a caption box beneath holding an
+    // optional control (quantity badge, talisman attachment) and the effect text. The
+    // control lives here rather than over the art so the tile can clip to its rounded
+    // corners - put it back over the art and overflow: hidden cuts it off. The caption
+    // isn't part of the click target, which stays the art alone.
+    function buildCardTile(card, cardEl, control) {
+        const tile = document.createElement('figure');
+        tile.className = 'card-tile';
+        tile.appendChild(cardEl);
+
+        const effectHtml = formatRulesText(card.effect);
+        if (!control && !effectHtml) return tile;
+
+        const caption = document.createElement('figcaption');
+        caption.className = 'card-caption';
+        if (control) {
+            const controls = document.createElement('div');
+            controls.className = 'card-caption-controls';
+            controls.appendChild(control);
+            caption.appendChild(controls);
+        }
+        if (effectHtml) {
+            const text = document.createElement('div');
+            text.className = 'card-caption-text';
+            text.innerHTML = effectHtml;
+            caption.appendChild(text);
+        }
+        tile.appendChild(caption);
+        return tile;
     }
 
     function getCardStyle(card) {
