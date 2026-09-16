@@ -25,13 +25,12 @@ var CAST_SHEET_NAME = "IN Cast";
 // (guide PG.02), not the horizontal lockup — Horizontal_Filled_Light.png is 6208x1331,
 // so at 16px of tab it would be an unreadable sliver.
 //
-// 2026-09-16: the Drive `thumbnail?id=...` form below errored "not supported" for
-// Harvey. That URL is a redirect with no image extension, which is the likeliest
-// reason. A direct URL ending in .png is the thing to try next — this repo is public,
-// so once a square logomark is committed to assets/branding/ its raw URL works:
-//   https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png
+// 2026-09-16: the Drive `thumbnail?id=...` form errored "not supported", and once guarded
+// showed no icon. That URL is a redirect with no image extension. This is the direct .png
+// from this public repo instead; favicon.png is a copy of "M3 Profile Image_256.png"
+// (256x256) under a name with no spaces, so the URL needs no escaping.
 // Leave it empty and the app simply keeps Apps Script's default icon.
-var FAVICON_URL = "https://drive.google.com/thumbnail?id=1QIURzyBekASaxbLyL0rh1Dpqy8s0xzvJ&sz=w256";
+var FAVICON_URL = "https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png";
 
 /**
  * Serves the HTML frontend interface to clients.
