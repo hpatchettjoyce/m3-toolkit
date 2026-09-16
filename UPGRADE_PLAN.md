@@ -1,18 +1,18 @@
 # M3 Toolkit — Upgrade Plan (single-sheet cast DB, new cards, branding)
 
 **Created:** 2026-09-14 · **Revised:** 2026-09-14 (decisions D1–D6 folded in, see §1.1)
-**Status:** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS; **6 and 7 (branding) seen
-in the browser 2026-09-16 — Harvey: "does look better but it can be improved"**, and the six
-improvements he raised are specced as **Chunk 8 — built 2026-09-16 (items 1–6, 8; commits
-`773eae8`..`5ec799e`), not yet seen in a browser; item 7 waits on whether the favicon shows**
-(Chunk 3 is withdrawn, D11). The favicon's "not supported" error no longer crashes the app (try/catch
-deployed and confirmed); whether the icon displays is Chunk 8 item 7. The CSV was re-exported
-2026-09-16 with Lark's ether cost moved into the effect text (**D12**, superseding D10). The
-validator passes clean, the compiler emits an ID-keyed `CardImages.gs` with all 200 cards, and
-`main.gs` serves all 200 from the single `IN Cast` tab with art looked up by card ID.
-Deployed 2026-09-15 as **@17** to the existing deployment id, so the public URL is unchanged.
-**Still untested:** roster export / re-import, the path most exposed to the `champ_<index>` -> card-ID
-change.
+**Status (2026-09-16, `efa7f81`):** Chunks 0–2 verified in the browser; 4 and 5 confirmed in TTS;
+6 and 7 (branding) seen in the browser. **Chunk 8 is built**, including its post-test rounds (header
+picker, auto-selected first champion, captions with effect names/types/keywords, inline SVG icons,
+Maleperduis footer, Montserrat Light) — Harvey has browser-tested it round by round ("looking really
+smart"), but **the last three rounds (icon tokens, 1.5x stat icons, ±X icons) are not yet seen**.
+Chunk 3 is withdrawn (D11). The validator passes clean on the current export (no `Artwork` column;
+icon tokens `{Icon:{M3/Icons/…}}`; D12's ether cost is now an Ether Cost icon).
+**Left to do:** (1) browser pass of the latest rounds; (2) item 7 — does the GitHub `favicon.png`
+show in the tab? drop the item if not; (3) decide whether print cards get icons or keep
+`[PROWESS +1]` text; (4) **roster export / re-import still untested** end to end — the import path
+also now interacts with auto-selecting the first champion; (5) §7 — `PROJECT_NOTES.md` still
+documents the retired two-tab architecture.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -1442,7 +1442,9 @@ unaffected.
 1b. ~~**Restore `Lark`'s ether cost**~~ — **done 2026-09-14**. `03VOI-01CHP-0068` (sheet row 69),
    `TRICK SHOT`, now reads `SPECIAL ACTION | 4`. One cell changed; the validator passes clean.
 
-3. ~~**Copy the branding assets**~~ — **mostly done.** The PDF (2026-09-15), the six dominion
+3. ~~**Copy the branding assets**~~ — **done 2026-09-16.** `favicon.png` (256px), the SVG lockups
+   and the inline icon SVGs (`assets/inline icons/`) are all in. *(The note below is historical.)*
+   **Was mostly done.** The PDF (2026-09-15), the six dominion
    colours (`Dominion Colours.txt`, 2026-09-15) and the horizontal logo SVG are all in
    `assets/branding/`. **Outstanding: a logo PNG**, for the favicon and for TTS, which takes raster
    only. Path and Explorer instructions are in §3.6. Blocks part of Chunk 7 only.
@@ -1454,6 +1456,10 @@ unaffected.
    remove name-matching entirely.
 
 ## 7. Clean-up deferred to the end
+
+**Status 2026-09-16:** the four superseded inputs are already gone and `CLAUDE.md` is current.
+**Outstanding: `PROJECT_NOTES.md`** — still describes `IN Cha-Tal` / `IN SP` and two CSVs (`:13`,
+`:80`, `:105`, `:158`). The `*:Zone.Identifier` files are gitignored local Windows metadata.
 
 Once Chunks 0-5 are verified, delete the superseded inputs:
 `M3_TTS_DB - IN Cha-Tal.csv`, `M3_TTS_DB - IN SP.csv`,
