@@ -253,6 +253,18 @@
             overflow-wrap: anywhere;
         }
 
+        /* Card-level keywords (RANGE(5), STEALTH, ...), a teal bar above the effects */
+        .card-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-colour);
+            font-weight: 600;
+            color: var(--primary-colour);
+            letter-spacing: 0.3px;
+        }
+
         .card-effect-name {
             font-weight: 400;
             color: var(--accent-colour);
@@ -1386,6 +1398,13 @@
             cardEl.style.cssText = getCardStyle(item);
             cardEl.setAttribute('title', `${item.name} (Cost: ${cost} Ether)`);
 
+            // Greyed when not one copy fits the remaining ether, like the loyal and talisman
+            // cards. Once recruited it stays in its selected look even if another won't fit.
+            if (qty === 0 && !canAdd) {
+                cardEl.style.opacity = '0.4';
+                cardEl.style.cursor = 'not-allowed';
+            }
+
             // Qty input badge, in the caption's control row
             const qtyInput = document.createElement('input');
             qtyInput.type = 'number';
@@ -1632,7 +1651,12 @@
     // than the composed `card.effect` ("NAME | TYPE\ndetails"), so each part can be styled
     // on its own. card.effect stays as it is: the print card still renders it.
     function captionEffectsHtml(card) {
-        return [1, 2].map(slot => {
+        // Split on commas outside brackets, so a keyword's own arguments stay whole
+        const keywords = (card.keywords || '').split(/,(?![^(]*\))/).map(k => k.trim()).filter(Boolean);
+        const keywordsHtml = keywords.length
+            ? '<div class="card-keywords">' + keywords.map(k => `<span>${formatRulesText(k)}</span>`).join('') + '</div>'
+            : '';
+        return keywordsHtml + [1, 2].map(slot => {
             const name = card[`effect${slot}Name`];
             const type = card[`effect${slot}Type`];
             const details = card[`effect${slot}Details`];
