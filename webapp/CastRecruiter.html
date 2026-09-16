@@ -353,12 +353,54 @@
         /* Header lockup. The logo already carries the wordmark, so the h1 is only the
            tool's name; the accessible name of the pair reads "Monumentum" + "Cast
            Recruiter", matching the document title. */
+        /* Header bar: the lockup on the left, the dominion picker and import on the right.
+           The divider under it is the one the old full-width picker row used to carry. */
+        .brand-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px 40px;
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid var(--border-colour);
+        }
+
         .brand {
+            flex: 0 1 420px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 14px;
-            margin-bottom: 25px;
+        }
+
+        .brand-controls {
+            flex: 0 1 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand-controls select {
+            margin-bottom: 0;
+        }
+
+        .brand-controls .btn-import {
+            width: 100%;
+            white-space: normal;
+        }
+
+        /* Stacked: lockup centred, controls full width beneath it */
+        @media (max-width: 700px) {
+            .brand-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .brand {
+                flex-basis: auto;
+            }
+            .brand-controls {
+                flex-basis: auto;
+            }
         }
 
         .brand-logo {
@@ -431,15 +473,11 @@
             background-color: var(--field-bg);
         }
 
-        /* Sized to its label, never squeezed below it: a fixed height plus a 150px
-           minimum used to wrap the text onto a second line that spilled out of the button.
-           It drops under the dominion select when the row runs out of room. */
+        /* No fixed height: a 48px height with a squeezed width used to push a wrapped
+           label out of the button. min-height lets it grow instead. */
         .btn-import {
-            flex: 0 0 auto;
-            width: auto;
             min-height: 48px;
             padding: 12px 20px;
-            white-space: nowrap;
             background-color: var(--primary-colour);
             color: var(--on-fill-colour);
             font-weight: bold;
@@ -626,10 +664,6 @@
             .site-footer-logo {
                 height: 30px;
                 align-self: center;
-            }
-            .btn-import {
-                flex-basis: 100%;
-                white-space: normal;
             }
         }
 
@@ -960,23 +994,23 @@
 
 <div class="app-shell">
 <div class="container">
-    <header class="brand">
-        <svg class="brand-logo" viewBox="0 0 1489.62 319.32" role="img" aria-label="Monumentum"><use href="#m3-logo"/></svg>
-        <h1>Cast Recruiter</h1>
+    <header class="brand-bar">
+        <div class="brand">
+            <svg class="brand-logo" viewBox="0 0 1489.62 319.32" role="img" aria-label="Monumentum"><use href="#m3-logo"/></svg>
+            <h1>Cast Recruiter</h1>
+        </div>
+        <!-- Hidden until the card database has loaded, like #app -->
+        <div id="app-controls" class="brand-controls hidden">
+            <select id="dominion-select" aria-label="Select Dominion">
+                <option value="">-- Choose a Dominion --</option>
+            </select>
+            <button id="btn-import-top" class="btn-import">Import Cast JSON</button>
+        </div>
     </header>
 
     <div id="loading" class="loader">Loading database...</div>
 
     <div id="app" class="hidden">
-        <div class="section" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-            <div style="flex: 1 1 200px;">
-                <label for="dominion-select">Select Dominion</label>
-                <select id="dominion-select" style="margin-bottom: 0;">
-                    <option value="">-- Choose a Dominion --</option>
-                </select>
-            </div>
-            <button id="btn-import-top" class="btn-import">Import Cast JSON</button>
-        </div>
 
         <div id="builder-content" class="hidden">
             <div class="section">
@@ -1090,6 +1124,7 @@
     const els = {
         loading: document.getElementById('loading'),
         app: document.getElementById('app'),
+        appControls: document.getElementById('app-controls'),
         dominionSelect: document.getElementById('dominion-select'),
         builderContent: document.getElementById('builder-content'),
         championGrid: document.getElementById('champion-grid'),
@@ -1151,6 +1186,7 @@
     function showApp() {
         els.loading.classList.add('hidden');
         els.app.classList.remove('hidden');
+        els.appControls.classList.remove('hidden');
     }
 
     function renderDominions() {
@@ -1164,25 +1200,34 @@
 
         els.dominionSelect.addEventListener('change', (e) => {
             state.dominion = e.target.value;
-            state.champion = "";
-            state.familiars = {};
-            state.talismans = {};
-            state.specials = [];
-            
+
             if (state.dominion) {
                 els.builderContent.classList.remove('hidden');
                 els.statusWidget.classList.remove('hidden');
-                renderChampions();
-                renderAllUnits();
-                renderSpecials();
-                els.recruitmentSection.classList.add('hidden');
-                els.specialsSection.classList.add('hidden');
+                // Start on the dominion's first champion, so the whole cast is on screen
+                // straight away rather than waiting for a champion click.
+                const firstChamp = db.champions.find(c => c.dominion === state.dominion);
+                selectChampion(firstChamp ? firstChamp.id : "");
             } else {
+                selectChampion("");
                 els.builderContent.classList.add('hidden');
                 els.statusWidget.classList.add('hidden');
             }
-            updateTrackers();
         });
+    }
+
+    // Switching champion clears the cast: loyal companions and signature actions belong
+    // to a champion, so nothing picked under the previous one carries over.
+    function selectChampion(champId) {
+        state.champion = champId;
+        state.familiars = {};
+        state.talismans = {};
+        state.specials = [];
+
+        renderChampions();
+        renderAllUnits();
+        renderSpecials();
+        updateTrackers();
     }
 
     function renderChampions() {
@@ -1200,20 +1245,7 @@
             cardEl.style.cssText = getCardStyle(champ);
             cardEl.setAttribute('title', champ.name);
             
-            cardEl.addEventListener('click', () => {
-                state.champion = champ.id;
-                state.familiars = {};
-                state.talismans = {};
-                state.specials = [];
-                
-                renderChampions();
-                renderAllUnits();
-                renderSpecials();
-                updateTrackers();
-                
-                els.recruitmentSection.classList.remove('hidden');
-                els.specialsSection.classList.remove('hidden');
-            });
+            cardEl.addEventListener('click', () => selectChampion(champ.id));
 
             els.championGrid.appendChild(buildCardTile(champ, cardEl));
         });
