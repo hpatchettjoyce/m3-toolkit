@@ -18,7 +18,7 @@ Data flow: the frontend loads via `doGet` → `HtmlService.createHtmlOutputFromF
 
 Backend data source: the bound spreadsheet's single `IN Cast` tab — all 200 cards (Champion, Familiar, Minion, Talisman, Special Action). The old `IN Cha-Tal` / `IN SP` pair is gone. Classes are stored in all caps and normalised to Title Case at the parse boundary.
 
-**`MATCH_SHEET_NAME` is not a second cast source — do not point it at a cast tab.** It is the *write* destination for the TTS webhook: `doPost` looks it up, creates it if absent, and `appendRow()`s a 9-column match record after every game (`main.gs:101-125`). It must stay `"IN TTS"` (see `PROJECT_NOTES.md:38`); aiming it at a card-data tab appends match logs onto the bottom of the cards.
+**`MATCH_SHEET_NAME` is not a second cast source — do not point it at a cast tab.** It is the *write* destination for the TTS webhook: `doPost` looks it up, creates it if absent, and `appendRow()`s a 9-column match record after every game (`main.gs:101-125`). It must stay `"IN TTS"` (see `PROJECT_NOTES.md:40`); aiming it at a card-data tab appends match logs onto the bottom of the cards.
 
 **`IN Cast`'s row order is canonical, and `validate_cast.py` enforces it** — each row's `#` column and its ID's trailing sequence must equal its row position, so the rows cannot be reordered to fix anything. The card order Dextrous renders comes from `DEX Cast`, and **`DEX Cast` must mirror `IN Cast` row for row.** When the two drift, the compiler's positional injection silently labels every affected card with a different card's name; see `dextrous/make_contact_sheet.py` for the only check that catches it.
 

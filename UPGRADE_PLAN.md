@@ -11,11 +11,13 @@ icon tokens `{Icon:{M3/Icons/…}}`; D12's ether cost is now an Ether Cost icon)
 **Harvey, 2026-09-16 (late):** favicon shows (item 7 done); ±X icons show; exported cast lists
 still import into TTS. Stat/ether icons were still hard to read → raised to 2x dice size
 (`--stat-icon-size: 2.3em`), not yet seen. **`UPDATING.md`** added: the human-run update steps.
-**Left to do:** (1) confirm the 2x stat/ether icons are readable (tune `--stat-icon-size`);
+**Harvey, 2026-09-17 (`40d8485`):** the padding theory was right — the prowess, fortitude and ether
+artboards were re-exported with cropped viewBoxes (≈3913 → ≈3000 tall) and re-embedded by
+`build_svg_sprite.py`. `--stat-icon-size` is unchanged at `2.3em`; the re-cropped icons are not yet seen.
+**Left to do:** (1) confirm the re-cropped stat/ether icons are readable (tune `--stat-icon-size`);
 (2) decide whether print cards get icons or keep `[PROWESS +1]` text; (3) web-app *re-import* of an
-exported cast (Import Cast JSON button) not explicitly confirmed — TTS import is; (4) §7 —
-`PROJECT_NOTES.md` still describes the two-tab architecture in its architecture/component sections
-(`:13 :80 :105`); its workflow section now points to `UPDATING.md`.
+exported cast (Import Cast JSON button) not explicitly confirmed — TTS import is. ~~(4) §7
+`PROJECT_NOTES.md`~~ — **done 2026-09-18**, see §7.
 **Source of truth for agent sessions.** Run `/pickup` to resume — it reads the latest handover note and then only the parts of this file that note points to. Don't publish this as an artifact; it stays a repo file.
 
 ---
@@ -1460,9 +1462,13 @@ unaffected.
 
 ## 7. Clean-up deferred to the end
 
-**Status 2026-09-16:** the four superseded inputs are already gone and `CLAUDE.md` is current.
-**Outstanding: `PROJECT_NOTES.md`** — still describes `IN Cha-Tal` / `IN SP` and two CSVs (`:13`,
-`:80`, `:105`, `:158`). The `*:Zone.Identifier` files are gitignored local Windows metadata.
+**Status 2026-09-18: done.** The four superseded inputs are gone, `CLAUDE.md` is current, and
+`PROJECT_NOTES.md` has been brought up to date — data-flow diagram (one `IN Cast` tab, one CSV, one
+`MonuMentuM DD-MM-YYYY.json` deck, plus a paragraph on the four scripts that sit off the main flow),
+component catalog (repo-root docs, the five current `dextrous/` scripts, `assets/`), the
+`getCardDatabase()` spec, the SPA's Chunk 8 layout and icon tokens, the compiler's single-CSV
+contract with its positional-pairing warning, and a new §2b for the offline validator. The
+`*:Zone.Identifier` files are gitignored local Windows metadata.
 
 Once Chunks 0-5 are verified, delete the superseded inputs:
 `M3_TTS_DB - IN Cha-Tal.csv`, `M3_TTS_DB - IN SP.csv`,
