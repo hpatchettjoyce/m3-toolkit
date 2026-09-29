@@ -78,17 +78,17 @@ SEGMENT_BY_CLASS = {
 # the game actually allows, so new combinations pass without a code change:
 #
 #     ABILITY
-#     [FREE] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
+#     [BONUS] ACTION | ATTACK | MANOEUVRE | ATTACK MANOEUVRE [REACTION | EXERTION]
 #
 # Square brackets are optional, slashes are either/or. Everything is uppercase.
 #
-# FREE is about the action economy, not ether: Lark's TRICK SHOT is a FREE ACTION that
+# BONUS is about the action economy, not ether: Lark's TRICK SHOT is a BONUS ACTION that
 # costs 4. A per-effect ether cost is not part of the type at all -- it is a leading
 # `**ETHER(N)**:` tag in the effect *details* (D12), checked by `ether_tag_errors`.
 # The old `SPECIAL` prefix and trailing `| N` cost are retired; `SPECIAL ACTION` lives
 # on only as a card *Class* (`CLASSES`), which is a different namespace.
 EFFECT_STANDALONE = ("ABILITY",)
-EFFECT_PREFIXES = ("FREE",)
+EFFECT_PREFIXES = ("BONUS",)
 EFFECT_CORES = ("ACTION", "ATTACK", "MANOEUVRE", "ATTACK MANOEUVRE")
 EFFECT_SUFFIXES = ("REACTION", "EXERTION")
 
@@ -102,8 +102,8 @@ def _alternation(options: tuple[str, ...]) -> str:
     return "|".join(re.escape(o) for o in sorted(options, key=len, reverse=True))
 
 
-# Exactly one space between parts -- `\s*` here would quietly accept `FREEACTION` and
-# `FREE  ACTION`, both of which reach the card face verbatim.
+# Exactly one space between parts -- `\s*` here would quietly accept `BONUSACTION` and
+# `BONUS  ACTION`, both of which reach the card face verbatim.
 EFFECT_BASE_PATTERN = re.compile(
     "^(?:"
     + _alternation(EFFECT_STANDALONE)
@@ -113,14 +113,22 @@ EFFECT_BASE_PATTERN = re.compile(
     + ")$"
 )
 
-# Pre-D8 spellings. The grammar already rejects these -- `ATTACK ACTION` is a core
+# Retired spellings: pre-D8, and the FREE prefix renamed BONUS. The grammar already rejects these -- `ATTACK ACTION` is a core
 # followed by another core -- but naming them turns "unknown value" into "stale
 # export", which is the actual diagnosis. Not valid input.
 SUPERSEDED_EFFECT_TYPES = {
     "ATTACK ACTION": "ATTACK",
     "MANOEUVRE ACTION": "MANOEUVRE",
     "ATTACK MANOEUVRE ACTION": "ATTACK MANOEUVRE",
-    "FREE ATTACK ACTION": "FREE ATTACK",
+    "FREE ATTACK ACTION": "BONUS ATTACK",
+    # The FREE prefix was renamed BONUS (card review chunk 5.15, 2026-09-29).
+    "FREE ACTION": "BONUS ACTION",
+    "FREE ATTACK": "BONUS ATTACK",
+    "FREE MANOEUVRE": "BONUS MANOEUVRE",
+    "FREE ATTACK MANOEUVRE": "BONUS ATTACK MANOEUVRE",
+    "FREE REACTION": "BONUS REACTION",
+    "FREE ATTACK REACTION": "BONUS ATTACK REACTION",
+    "FREE MANOEUVRE REACTION": "BONUS MANOEUVRE REACTION",
 }
 
 # Pre-D12 shapes: a `SPECIAL` prefix and/or a trailing `| N` ether cost on the type.
@@ -130,7 +138,7 @@ PRE_D12_PREFIX = "SPECIAL"
 PRE_D12_COST_PATTERN = re.compile(r"^(?P<base>.*?)\s*\|\s*(?P<cost>.*)$")
 
 EFFECT_GRAMMAR_SUMMARY = (
-    "ABILITY, or [FREE] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]"
+    "ABILITY, or [BONUS] ACTION/ATTACK/MANOEUVRE/ATTACK MANOEUVRE [REACTION/EXERTION]"
 )
 
 
@@ -164,7 +172,7 @@ def effect_type_error(value: str) -> str | None:
     superseded = SUPERSEDED_EFFECT_TYPES.get(value)
     if superseded:
         return (
-            f"{value!r} is the pre-D8 spelling — should be {superseded!r}. "
+            f"{value!r} is a retired spelling — should be {superseded!r}. "
             "This is a stale export; re-export the sheet."
         )
 
