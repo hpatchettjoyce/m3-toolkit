@@ -49,6 +49,11 @@ PAIRS = [
     ("--accent-colour",       "--surface-bg",     TEXT, ".card-effect-name"),
     ("--muted-text-colour",   "--surface-bg",     TEXT, ".card-effect-type"),
     ("--primary-colour",      "--surface-bg",     TEXT, ".card-caption-text strong (keywords)"),
+    ("--text-colour",         "--surface-bg",     TEXT, ".dominion-entry rules text"),
+    ("--accent-colour",       "--surface-bg",     TEXT, ".dominion-entry-name"),
+    ("--muted-text-colour",   "--surface-bg",     TEXT, ".dominion-entry-kind, .dominion-flavour, .dominion-note"),
+    ("--primary-colour",      "--surface-bg",     TEXT, ".dominion-entry strong (keywords)"),
+    ("--muted-text-colour",   "--panel-bg",       TEXT, ".disclosure-hint, .dominion-rules-empty"),
 
     # --- screen chrome, text on filled buttons ---
     ("--on-fill-colour", "--primary-colour",        TEXT, ".print-overlay-header, #btn-import-top"),

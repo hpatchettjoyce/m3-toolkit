@@ -28,6 +28,10 @@ There is also a `DEX Cast` tab in the spreadsheet. **Nothing in this repo reads 
 
 **The tab name is `CAST_SHEET_NAME` at the top of `webapp/main.gs`.** It has been renamed more than once (`IN CAST` -> `Cast` -> `IN Cast`), and `getSheetByName()` matches exactly — case and spacing included. If the tab is renamed, change that one constant, `clasp push`, and redeploy. `getCardDatabase()` lists every tab in the spreadsheet in its error when it can't find the configured one, so the correct name is in the error text itself.
 
+**Dominion rules come from a second spreadsheet.** `getDominionRules()` opens the master sheet ("02_Card and Dominion Effects") by `DOMINIONS_SPREADSHEET_ID` and reads its `Dominions` tab: row 1 dominion names, row 2 special rules (`Name | Type` blocks), then name/description row pairs in `DOMINION_ROW_KINDS` order (buff, buff, debuff, debuff, terrain, totem, minion, spawner; a `(terrain)`/`(totem)` tag in the name wins over position). It is served as `db.dominionRules[<Cast spelling of the dominion>]` and rendered by `renderDominionRules()`. A failure there sets `db.dominionRulesError` and the cards still load. `openById` works because the web app executes as its owner (`USER_DEPLOYING`).
+
+**`M3_TTS_DB - Cast.csv` comes from `dextrous/pull_cast.py`**, which copies the M3 Source Exporter's Drive export of the master sheet's `Cast` tab (same columns as `IN Cast`). No manual download.
+
 **`getActiveSpreadsheet()` resolves to the spreadsheet the script is BOUND to, which is not necessarily the card database.** The bound sheet has imported from the DB in the past, so a tab name that exists in the DB may not exist in the sheet the script actually sees — check the bound document before assuming the error is wrong.
 
 Expected `getCardDatabase()` schema:
@@ -36,7 +40,9 @@ Expected `getCardDatabase()` schema:
   "dominions": ["Rhavlika", "Iro-Si-Khar", "Voisira", "..."],
   "champions": [{ "id": "01RHA-01CHP-0001", "uniqueId": "01RHA-01CHP-0001", "name": "Flint Dross", "dominion": "Rhavlika", "class": "Champion", "effect": "NAME | TYPE\ndetails...", "image": { "url": "...", "cols": 8, "rows": 6, "idx": 0 } }],
   "units": [{ "id": "01RHA-03FAM-0012", "name": "Caldrack", "class": "Familiar", "cost": 6, "isLoyal": true, "tiedChampionId": "01RHA-01CHP-0001" }],
-  "specials": [{ "id": "01RHA-07SPA-0020", "name": "Thermal Venting", "cost": 0, "isSignature": false, "tiedChampionId": null }]
+  "specials": [{ "id": "01RHA-07SPA-0020", "name": "Thermal Venting", "cost": 0, "isSignature": false, "tiedChampionId": null }],
+  "dominionRules": { "Iro-Si-Khar": { "rules": "Fluid Bodies | Ability\nAll allies have SLIGHT.", "entries": [{ "kind": "buff", "name": "Shell", "text": "..." }] } },
+  "dominionRulesError": ""
 }
 ```
 

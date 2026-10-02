@@ -15,6 +15,14 @@ var MATCH_SHEET_NAME = "IN TTS";
 // not necessarily the card database itself.
 var CAST_SHEET_NAME = "IN Cast";
 
+// The dominion rules (special rules, statuses, terrain, totem, minion/spawner) come
+// from the `Dominions` tab of the master sheet, "02_Card and Dominion Effects". That
+// tab isn't in the bound spreadsheet, so it is opened by ID rather than through
+// getActiveSpreadsheet(); the web app executes as its owner, who can open it. Leave
+// the ID empty to read a `Dominions` tab from the bound spreadsheet instead.
+var DOMINIONS_SPREADSHEET_ID = "1Ygee2UCwKKsVmKysXC8IaIwvovRtLTbaQxIJLSMKNmM";
+var DOMINIONS_SHEET_NAME = "Dominions";
+
 // Tab icon for the web app. This has to be set here rather than with a
 // <link rel="icon"> in CastRecruiter.html: Apps Script serves the page inside an
 // iframe on a Google-owned top-level document, so the HTML's own icon never reaches
@@ -413,7 +421,9 @@ function getCardDatabase() {
     dominions: [],
     champions: [],
     units: [],
-    specials: []
+    specials: [],
+    dominionRules: {},
+    dominionRulesError: ""
   };
 
   var seenDominions = {};
@@ -423,6 +433,15 @@ function getCardDatabase() {
       db.dominions.push(record.dominion);
     }
   });
+
+  // The rules are reference text, not something a cast can be built without, so a
+  // failure here is reported to the page and the cards still load.
+  try {
+    db.dominionRules = getDominionRules(db.dominions);
+  } catch (err) {
+    console.warn("Dominion rules unavailable: " + err.message);
+    db.dominionRulesError = String(err.message || err);
+  }
 
   // Champion links are scoped within the dominion — every dominion has exactly
   // two champions, so a normalised collision is very unlikely, but scoping it
@@ -521,4 +540,75 @@ function getCardDatabase() {
   // This stringify and parse trick strips out any hidden Google Sheet objects
   // and guarantees the data is perfectly clean for the web browser.
   return JSON.parse(JSON.stringify(db));
+}
+
+// What each name/description row pair below the rules row holds, in tab order.
+// A name carrying its own "(terrain)" / "(totem)" tag overrides its position, and
+// a pair beyond these is served as "other" rather than dropped.
+var DOMINION_ROW_KINDS = ["buff", "buff", "debuff", "debuff", "terrain", "totem", "minion", "spawner"];
+
+/**
+ * Reads the Dominions tab and returns { <dominion>: { rules, entries: [{ kind, name, text }] } },
+ * keyed by the Cast tab's spelling of each dominion so the frontend can look it up
+ * with state.dominion.
+ *
+ * Tab layout: row 1 = dominion names (one column each), row 2 = the dominion's
+ * special rules, then (name, description) row pairs - see DOMINION_ROW_KINDS.
+ */
+function getDominionRules(castDominions) {
+  var ss = DOMINIONS_SPREADSHEET_ID ?
+      SpreadsheetApp.openById(DOMINIONS_SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DOMINIONS_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('No "' + DOMINIONS_SHEET_NAME + '" tab in "' + ss.getName() + '".');
+  }
+  var rows = sheet.getDataRange().getDisplayValues();
+
+  var castNameByKey = {};
+  (castDominions || []).forEach(function (name) { castNameByKey[normaliseName(name)] = name; });
+
+  var cellAt = function (r, c) {
+    return rows[r] && rows[r][c] !== undefined ? String(rows[r][c]).trim() : "";
+  };
+
+  var rules = {};
+  (rows[0] || []).forEach(function (header, c) {
+    var tabName = String(header).trim();
+    if (!tabName) return;
+    var dominion = castNameByKey[normaliseName(tabName)];
+    if (!dominion) {
+      console.warn('Dominions tab column "' + tabName + '" matches no dominion in the cast; skipped.');
+      return;
+    }
+
+    var entries = [];
+    for (var r = 2, slot = 0; r < rows.length; r += 2, slot++) {
+      var label = cellAt(r, c);
+      var text = cellAt(r + 1, c);
+      if (!label && !text) continue;
+      var tagged = /^(.*?)\s*\(([^()]+)\)$/.exec(label);
+      entries.push({
+        kind: tagged ? tagged[2].trim().toLowerCase() : (DOMINION_ROW_KINDS[slot] || "other"),
+        name: tagged ? tagged[1] : label,
+        text: text
+      });
+    }
+    rules[dominion] = { rules: cellAt(1, c), entries: entries };
+  });
+  return rules;
+}
+
+/**
+ * Editor check: run this after a push. The log lists each dominion's entry count,
+ * and its first line is the proof that this version of main.gs is the one loaded.
+ */
+function logDominionRules() {
+  var rules = getDominionRules(getCardDatabase().dominions);
+  Logger.log("Dominion rules (main.gs, dominion-reference build):");
+  Object.keys(rules).forEach(function (dominion) {
+    var entry = rules[dominion];
+    Logger.log("  " + dominion + ": " + (entry.rules ? "rules + " : "no rules + ") +
+        entry.entries.length + " entries (" +
+        entry.entries.map(function (e) { return e.name + " [" + e.kind + "]"; }).join(", ") + ")");
+  });
 }

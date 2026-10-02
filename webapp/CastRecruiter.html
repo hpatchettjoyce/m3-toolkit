@@ -406,6 +406,104 @@
             border-bottom: none;
         }
 
+        /* Dominion Rules: the h2 is the disclosure toggle, so the browser's own marker
+           (which would sit on a line of its own above a block h2) is replaced by a hint. */
+        .dominion-rules > summary {
+            display: block;
+            list-style: none;
+            cursor: pointer;
+        }
+        .dominion-rules > summary::-webkit-details-marker {
+            display: none;
+        }
+        .dominion-rules > summary h2 {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+        .dominion-rules:not([open]) > summary h2 {
+            margin-bottom: 0;
+        }
+        .disclosure-hint::after {
+            content: "Hide";
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--muted-text-colour);
+        }
+        .dominion-rules:not([open]) .disclosure-hint::after {
+            content: "Show";
+        }
+        .dominion-rules > summary:focus-visible {
+            outline: 2px solid var(--accent-colour);
+            outline-offset: 4px;
+        }
+
+        /* One heading per group (rules, buffs, debuffs, objects, minion & spawner), each
+           holding a row of entries that wraps to one per line on a narrow container. */
+        .dominion-rules-body {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .dominion-group h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .dominion-group-entries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .dominion-entry {
+            background: var(--surface-bg);
+            border: 1px solid var(--border-colour);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            color: var(--text-colour);
+            overflow-wrap: anywhere;
+        }
+        .dominion-entry-name {
+            font-weight: 400;
+            color: var(--accent-colour);
+            letter-spacing: 0.3px;
+        }
+        .dominion-entry-kind {
+            font-style: italic;
+            font-size: 0.8rem;
+            color: var(--muted-text-colour);
+            margin-bottom: 6px;
+        }
+        .dominion-entry p,
+        .dominion-entry ul {
+            margin: 0 0 8px;
+        }
+        .dominion-entry > :last-child {
+            margin-bottom: 0;
+        }
+        .dominion-entry ul {
+            padding-left: 1.2em;
+        }
+        .dominion-entry strong {
+            font-weight: 600;
+            color: var(--primary-colour);
+        }
+        .dominion-flavour {
+            font-style: italic;
+            color: var(--muted-text-colour);
+        }
+        .dominion-note {
+            font-size: 0.8rem;
+            color: var(--muted-text-colour);
+        }
+        .dominion-rules-empty {
+            color: var(--muted-text-colour);
+            margin: 0;
+        }
+
         /* Header lockup. The logo already carries the wordmark, so the h1 is only the
            tool's name; the accessible name of the pair reads "Monumentum" + "Cast
            Recruiter", matching the document title. */
@@ -1082,6 +1180,13 @@
     <div id="app" class="hidden">
 
         <div id="builder-content" class="hidden">
+            <!-- Player reference for the chosen dominion, read from the master sheet's
+                 Dominions tab. Open by default; the toggle is remembered per browser. -->
+            <details id="dominion-rules-section" class="section dominion-rules" open>
+                <summary><h2>Dominion Rules <span class="disclosure-hint" aria-hidden="true"></span></h2></summary>
+                <div id="dominion-rules-body" class="dominion-rules-body"></div>
+            </details>
+
             <div class="section">
                 <h2>Select Champion</h2>
                 <div id="champion-grid" class="card-grid"></div>
@@ -1195,6 +1300,8 @@
         appControls: document.getElementById('app-controls'),
         dominionSelect: document.getElementById('dominion-select'),
         builderContent: document.getElementById('builder-content'),
+        dominionRulesSection: document.getElementById('dominion-rules-section'),
+        dominionRulesBody: document.getElementById('dominion-rules-body'),
         championGrid: document.getElementById('champion-grid'),
         recruitmentSection: document.getElementById('recruitment-section'),
         loyalGrid: document.getElementById('loyal-grid'),
@@ -1268,6 +1375,7 @@
 
         els.dominionSelect.addEventListener('change', (e) => {
             state.dominion = e.target.value;
+            renderDominionRules();
 
             if (state.dominion) {
                 els.builderContent.classList.remove('hidden');
@@ -1283,6 +1391,110 @@
             }
         });
     }
+
+    // --- Dominion Rules ------------------------------------------------------------------
+    // db.dominionRules[dominion] = { rules, entries: [{ kind, name, text }] }, from the
+    // master sheet's Dominions tab (main.gs, getDominionRules). Entries are grouped by kind
+    // in this order; a kind not listed here lands in "Other" rather than vanishing.
+    const DOMINION_GROUPS = [
+        { title: 'Buffs', kinds: ['buff'] },
+        { title: 'Debuffs', kinds: ['debuff'] },
+        { title: 'Objects', kinds: ['terrain', 'totem'] },
+        { title: 'Minion & Spawner', kinds: ['minion', 'spawner'] }
+    ];
+    const DOMINION_KIND_LABELS = {
+        buff: 'Buff', debuff: 'Debuff', terrain: 'Terrain', totem: 'Totem', minion: 'Minion', spawner: 'Spawner'
+    };
+    const DOMINION_RULES_OPEN_KEY = 'm3-dominion-rules-open';
+
+    // A description is paragraphs separated by blank lines. A leading paragraph with no
+    // *markup* is the flavour line (rules text always names its status in italics), and a
+    // "Designer's note:" paragraph is set small; everything else is rules text.
+    function dominionTextHtml(text) {
+        const paragraphs = String(text || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+        return paragraphs.map((p, i) => {
+            let cls = '';
+            if (/^Designer['’]s note:/i.test(p)) cls = 'dominion-note';
+            else if (i === 0 && paragraphs.length > 1 && !p.includes('*')) cls = 'dominion-flavour';
+            const lines = p.split('\n').map(l => l.trim()).filter(Boolean);
+            // A paragraph that is all "- " lines is a list (Veritian's Upper Hand / Under Hand)
+            if (lines.every(l => /^[-•]\s+/.test(l))) {
+                return '<ul>' + lines.map(l => `<li>${formatRulesText(l.replace(/^[-•]\s+/, ''), { icons: true })}</li>`).join('') + '</ul>';
+            }
+            return `<p${cls ? ` class="${cls}"` : ''}>${formatRulesText(p, { icons: true })}</p>`;
+        }).join('');
+    }
+
+    function dominionEntryHtml(name, kind, bodyHtml) {
+        return '<div class="dominion-entry">'
+            + (name ? `<div class="dominion-entry-name">${escapeHtml(name)}</div>` : '')
+            + (kind ? `<div class="dominion-entry-kind">${escapeHtml(kind)}</div>` : '')
+            + bodyHtml
+            + '</div>';
+    }
+
+    // The special-rules cell holds one or more "Name | Type" headed blocks, separated by
+    // blank lines, the same shape as a card's effect. A block with no header continues
+    // the one before it.
+    function dominionRuleBlocks(text) {
+        const blocks = [];
+        String(text || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean).forEach(block => {
+            const [first, ...rest] = block.split('\n');
+            const header = /^(.+?)\s*\|\s*(.+)$/.exec(first.trim());
+            if (header || !blocks.length) {
+                blocks.push({ name: header ? header[1] : '', type: header ? header[2] : '', body: header ? rest.join('\n') : block });
+            } else {
+                blocks[blocks.length - 1].body += '\n\n' + block;
+            }
+        });
+        return blocks;
+    }
+
+    function dominionGroupHtml(title, entriesHtml) {
+        return `<div class="dominion-group"><h3>${escapeHtml(title)}</h3>`
+            + `<div class="dominion-group-entries">${entriesHtml}</div></div>`;
+    }
+
+    function renderDominionRules() {
+        const body = els.dominionRulesBody;
+        const info = (db.dominionRules || {})[state.dominion];
+        if (!info) {
+            body.innerHTML = '<p class="dominion-rules-empty">'
+                + escapeHtml(db.dominionRulesError
+                    ? 'Dominion rules could not be loaded: ' + db.dominionRulesError
+                    : 'No dominion rules are listed for ' + state.dominion + ' yet.')
+                + '</p>';
+            return;
+        }
+
+        const groups = [];
+        const rules = dominionRuleBlocks(info.rules);
+        if (rules.length) {
+            groups.push(dominionGroupHtml('Special Rules', rules.map(block =>
+                dominionEntryHtml(block.name, block.type, dominionTextHtml(block.body))).join('')));
+        }
+
+        const entries = info.entries || [];
+        const listed = DOMINION_GROUPS.flatMap(group => group.kinds);
+        DOMINION_GROUPS.concat([{ title: 'Other', kinds: null }]).forEach(group => {
+            const members = entries.filter(e => group.kinds ? group.kinds.includes(e.kind) : !listed.includes(e.kind));
+            if (!members.length) return;
+            groups.push(dominionGroupHtml(group.title, members.map(e =>
+                dominionEntryHtml(e.name, DOMINION_KIND_LABELS[e.kind] || e.kind, dominionTextHtml(e.text))).join('')));
+        });
+
+        body.innerHTML = groups.join('') || '<p class="dominion-rules-empty">No dominion rules are listed for '
+            + escapeHtml(state.dominion) + ' yet.</p>';
+    }
+
+    // Remember whether the reference is open, so a player who has learned it can keep it
+    // folded away. Storage can be unavailable (private windows, blocked site data).
+    try {
+        if (localStorage.getItem(DOMINION_RULES_OPEN_KEY) === 'false') els.dominionRulesSection.open = false;
+    } catch (err) { /* storage unavailable - stay open */ }
+    els.dominionRulesSection.addEventListener('toggle', () => {
+        try { localStorage.setItem(DOMINION_RULES_OPEN_KEY, String(els.dominionRulesSection.open)); } catch (err) { /* ignore */ }
+    });
 
     // Switching champion clears the cast: loyal companions and signature actions belong
     // to a champion, so nothing picked under the previous one carries over.

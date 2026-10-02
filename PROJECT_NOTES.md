@@ -12,7 +12,7 @@ The M3 Toolkit bridges three independent runtime environments—a **Google Sheet
        [ Google Sheets Database ]
           (Tab: IN Cast — all 200 cards)
                     │
-                    ▼ (Export one CSV: "M3_TTS_DB - Cast.csv")
+                    ▼ (pull_cast.py copies the Source Exporter's Cast.csv → "M3_TTS_DB - Cast.csv")
       [ Python Metadata Compiler ] ──(Generates CardImages.gs)──► [ Web App (GAS Backend) ]
          (generate_card_images.py)                                     │ (Serves Card Data)
                     │                                                  ▼
@@ -70,6 +70,7 @@ m3-toolkit/
 │
 ├── dextrous/                           # Python-based Compilation, Validation & Asset Automation
 │   ├── generate_card_images.py         # Compiler: CSV + deck JSON -> CardImages.gs, deck injected in place
+│   ├── pull_cast.py                    # Copies the Source Exporter's Cast.csv from Drive over the repo CSV
 │   ├── validate_cast.py                # Offline validator — the gate every change passes before a manual test
 │   ├── build_svg_sprite.py             # Embeds the referenced inline icons into CastRecruiter.html
 │   ├── make_contact_sheet.py           # Art-next-to-name page; catches DEX Cast / IN Cast drift
