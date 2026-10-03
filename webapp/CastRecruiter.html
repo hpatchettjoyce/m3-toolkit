@@ -384,9 +384,11 @@
 
         /* Talisman Dropdown styling */
         .talisman-select {
+            --chevron-inset: 10px;
             width: 100%;
             margin: 0;
             padding: 6px;
+            padding-right: calc(var(--chevron-inset) + 20px);
             font-size: 0.8rem;
             border-radius: var(--radius);
             border: 1px solid var(--field-border-colour);
@@ -406,8 +408,16 @@
             border-bottom: none;
         }
 
-        /* Dominion Rules: the h2 is the disclosure toggle, so the browser's own marker
-           (which would sit on a line of its own above a block h2) is replaced by a hint. */
+        /* Dominion Rules: a gold-edged box on the darker ground, so it reads as a separate
+           reference panel even while folded to its title bar (it starts folded). The h2 is
+           the disclosure toggle; the browser's own marker, which would sit on a line of its
+           own above a block h2, is replaced by a Show/Hide hint. */
+        .section.dominion-rules {
+            padding: 16px 22px;
+            background: var(--surface-bg);
+            border: 1px solid var(--accent-colour);
+            border-radius: var(--radius);
+        }
         .dominion-rules > summary {
             display: block;
             list-style: none;
@@ -420,12 +430,17 @@
             display: flex;
             align-items: baseline;
             justify-content: space-between;
+            margin-top: 0;
+            color: var(--accent-colour);
+            border-bottom-color: var(--accent-colour);
         }
         .dominion-rules:not([open]) > summary h2 {
             margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
         .disclosure-hint::after {
-            content: "Hide";
+            content: "Hide \25B4";
             font-family: var(--font-body);
             font-size: 0.75rem;
             letter-spacing: 0.5px;
@@ -433,7 +448,10 @@
             color: var(--muted-text-colour);
         }
         .dominion-rules:not([open]) .disclosure-hint::after {
-            content: "Show";
+            content: "Show \25BE";
+        }
+        .dominion-rules > summary:hover .disclosure-hint::after {
+            color: var(--accent-colour);
         }
         .dominion-rules > summary:focus-visible {
             outline: 2px solid var(--accent-colour);
@@ -457,7 +475,7 @@
             gap: 12px;
         }
         .dominion-entry {
-            background: var(--surface-bg);
+            background: var(--panel-bg);
             border: 1px solid var(--border-colour);
             border-radius: 8px;
             padding: 12px 14px;
@@ -634,9 +652,25 @@
             box-sizing: border-box;
         }
 
+        /* The browser's own arrow sits hard against the right edge and ignores padding, so it
+           is replaced by a chevron drawn from two gradients (on the colour tokens, unlike an
+           SVG background), set --chevron-inset in from the edge. */
         select {
+            --chevron-inset: 18px;
             margin-bottom: 15px;
+            padding-right: calc(var(--chevron-inset) + 24px);
+            -webkit-appearance: none;
+            appearance: none;
             background-color: var(--field-bg);
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--text-colour) 50%),
+                linear-gradient(135deg, var(--text-colour) 50%, transparent 50%);
+            background-position:
+                calc(100% - var(--chevron-inset) - 5px) 50%,
+                calc(100% - var(--chevron-inset)) 50%;
+            background-size: 5px 5px;
+            background-repeat: no-repeat;
+            cursor: pointer;
         }
 
         /* No fixed height: a 48px height with a squeezed width used to push a wrapped
@@ -1181,8 +1215,8 @@
 
         <div id="builder-content" class="hidden">
             <!-- Player reference for the chosen dominion, read from the master sheet's
-                 Dominions tab. Open by default; the toggle is remembered per browser. -->
-            <details id="dominion-rules-section" class="section dominion-rules" open>
+                 Dominions tab. Folded by default; opening it is remembered per browser. -->
+            <details id="dominion-rules-section" class="section dominion-rules">
                 <summary><h2>Dominion Rules <span class="disclosure-hint" aria-hidden="true"></span></h2></summary>
                 <div id="dominion-rules-body" class="dominion-rules-body"></div>
             </details>
@@ -1487,11 +1521,11 @@
             + escapeHtml(state.dominion) + ' yet.</p>';
     }
 
-    // Remember whether the reference is open, so a player who has learned it can keep it
-    // folded away. Storage can be unavailable (private windows, blocked site data).
+    // The reference starts folded; a player who opens it keeps it open on their next visit.
+    // Storage can be unavailable (private windows, blocked site data).
     try {
-        if (localStorage.getItem(DOMINION_RULES_OPEN_KEY) === 'false') els.dominionRulesSection.open = false;
-    } catch (err) { /* storage unavailable - stay open */ }
+        if (localStorage.getItem(DOMINION_RULES_OPEN_KEY) === 'true') els.dominionRulesSection.open = true;
+    } catch (err) { /* storage unavailable - stay folded */ }
     els.dominionRulesSection.addEventListener('toggle', () => {
         try { localStorage.setItem(DOMINION_RULES_OPEN_KEY, String(els.dominionRulesSection.open)); } catch (err) { /* ignore */ }
     });
