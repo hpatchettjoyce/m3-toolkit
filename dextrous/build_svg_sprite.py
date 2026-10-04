@@ -65,6 +65,18 @@ def referenced_icons() -> list[tuple[str, Path]]:
     return sorted(found.items())
 
 
+# The dice exports carry blank space under the die (3000 x 3300) so Dextrous centres them on
+# the card. Inline in text that space floats the die high and shrinks it, so the embedded
+# symbol is cropped back to the square at the top; the files themselves stay as Dextrous
+# needs them. Stat and ether icons have no such padding.
+PADDED_BELOW = ("icon-dice-",)
+
+
+def crop_to_square(view_box: str) -> str:
+    x, y, w, h = (float(v) for v in view_box.split())
+    return view_box if h <= w else f"{x:g} {y:g} {w:g} {w:g}"
+
+
 FIXED_ASSETS: list[tuple[str, Path]] = [
     ("maleperduis-logo", BRANDING / "Horizontal_Duotone_White.svg"),
 ]
@@ -77,7 +89,10 @@ def to_symbol(symbol_id: str, source: str) -> str:
     view_box = re.search(r'viewBox="([^"]+)"', root.group(0))
     if not view_box:
         raise ValueError(f"{symbol_id}: root <svg> has no viewBox")
-    svg = svg[: root.start()] + f'<symbol id="{symbol_id}" viewBox="{view_box.group(1)}">' + svg[root.end():]
+    box = view_box.group(1)
+    if symbol_id.startswith(PADDED_BELOW):
+        box = crop_to_square(box)
+    svg = svg[: root.start()] + f'<symbol id="{symbol_id}" viewBox="{box}">' + svg[root.end():]
     svg = svg.replace("</svg>", "</symbol>")
 
     # A <style> would leak page-wide; turn its single fill class into attributes.

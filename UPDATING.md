@@ -47,7 +47,7 @@ Steps 1 and 3 are still a cheap check after any sheet edit.
    still passes when that happens.
 7. **Check contrast.** `python3 dextrous/check_theme_contrast.py` must pass.
 
-Icon size: in `CastRecruiter.html`, `--stat-icon-size` sets the prowess, fortitude and ether icons (the dice are fixed at 1.15em).
+Icon size: in `CastRecruiter.html`, `--stat-icon-size` sets the prowess, fortitude and ether icons and `--dice-icon-size` the dice. The dice SVGs keep their blank space below for Dextrous; `build_svg_sprite.py` crops it off for the web app, so re-run step 4 after replacing a dice SVG.
 
 ## Deploy
 
