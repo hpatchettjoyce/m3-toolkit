@@ -66,6 +66,9 @@ Icon size: in `CastRecruiter.html`, `--stat-icon-size` sets the prowess, fortitu
 
 ## Save the work
 
+Only code and assets are committed. The cast CSV, the Dextrous deck JSON and `webapp/CardImages.gs` are
+gitignored data: keep them in the working copy (TTS and `clasp push` use them) but don't commit them.
+
 ```bash
 git add -A && git commit -m "What changed" && git push
 ```

@@ -29,3 +29,9 @@ dextrous/contact_sheet.html
 
 # WSL/Windows download metadata
 *:Zone.Identifier
+
+# Data, not code: each is recreated by the scripts in dextrous/ and goes stale when the
+# sheet or the art changes, so none is committed (see UPDATING.md).
+M3_TTS_DB - Cast.csv
+dextrous/MonuMentuM *.json
+webapp/CardImages.gs

@@ -12,7 +12,7 @@ Web app for building and validating game rosters ("casts") for the tabletop game
 
 - `webapp/main.gs` — primary entry point: `doGet(e)` routes the Web App, `doPost(e)` receives webhooks (e.g. from Tabletop Simulator), and defines `getCardDatabase()` — the single source of card data for the frontend.
 - `webapp/CastRecruiter.html` — the frontend SPA: layout, styling, state, validation, JSON export.
-- `webapp/CardImages.gs` — **generated** card art map, keyed by card ID. Never hand-edit it; re-run `dextrous/generate_card_images.py`.
+- `webapp/CardImages.gs` — **generated** card art map, keyed by card ID, and not committed (gitignored). Never hand-edit it; re-run `dextrous/generate_card_images.py`. `clasp push` sends the local copy, so on a fresh clone generate it before pushing — without it `getCardDatabase()` warns and serves cards with no art.
 
 Data flow: the frontend loads via `doGet` → `HtmlService.createHtmlOutputFromFile('CastRecruiter')`, then asynchronously calls `google.script.run.withSuccessHandler(...).withFailureHandler(...).getCardDatabase()`.
 
@@ -32,7 +32,7 @@ There is also a `DEX Cast` tab in the spreadsheet. **Nothing in this repo reads 
 
 **`M3_TTS_DB - Cast.csv` comes from `dextrous/pull_cast.py`**, which copies the M3 Source Exporter's Drive export of the master sheet's `Cast` tab (same columns as `IN Cast`). No manual download.
 
-**`getActiveSpreadsheet()` resolves to the spreadsheet the script is BOUND to, which is not necessarily the card database.** The bound sheet has imported from the DB in the past, so a tab name that exists in the DB may not exist in the sheet the script actually sees — check the bound document before assuming the error is wrong.
+**`getActiveSpreadsheet()` resolves to the spreadsheet the script is BOUND to (M3_TTS_DB), which is not the card database.** Its `IN Cast` tab is a Google Sheets import of the master sheet's `Cast` tab (confirmed by Harvey, 2026-10-04), so card edits reach the web app live with no copy step. It has imported other tabs in the past, so a tab name that exists in the DB may not exist in the sheet the script actually sees — check the bound document before assuming the error is wrong.
 
 Expected `getCardDatabase()` schema:
 ```json
@@ -67,7 +67,7 @@ Expected `getCardDatabase()` schema:
 
 - `dextrous/` — card data JSON exports and `generate_card_images.py` for producing card art.
 - `tts/` — Lua scripts for the Tabletop Simulator integration (loader, trackers, deploy scripts).
-- `M3_TTS_DB - Cast.csv` at repo root — raw card data exported from the cast tab described above. The filename reflects the tab's name at export time, which has changed; the tab is currently `IN Cast`.
+- **Data files are not committed.** `M3_TTS_DB - Cast.csv` (from `pull_cast.py`), `dextrous/MonuMentuM DD-MM-YYYY.json` (the Dextrous export, names stamped in place by the compiler) and `webapp/CardImages.gs` (compiled) live only in the working copy and are gitignored: they are regenerated from the sheet and Dextrous, and go stale when the data changes, not the code. Don't re-add them. The SVG sprite block inside `CastRecruiter.html` is generated too, but it lives in a source file, so it stays committed.
 
 ## Deployment
 
