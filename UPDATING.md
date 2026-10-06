@@ -11,7 +11,7 @@ From Windows the folder is `\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolk
 | Dominion rules, statuses, terrain, totems (master sheet's `Dominions` tab) | nothing — the web app reads that tab live | nothing |
 | …and the text uses an icon not used before | 1, 3, 4, 3 | web app |
 | Card names, IDs, classes, or added / removed / reordered rows | 1, 3, 5, 6 | web app, TTS deck (+ models if IDs or classes changed) |
-| New card art (new Dextrous export) | 2, 3, 5, 6 | web app, TTS deck |
+| New card art (new Dextrous export) | 2, 3, 5, 6 (and 1 first if the sheet changed) | web app, TTS deck |
 | An icon SVG or the footer logo | 4 | web app |
 | Colours in `webapp/CastRecruiter.html` | 7 | web app |
 | A TTS Lua script | — | re-paste it in TTS |
@@ -60,6 +60,7 @@ Icon size: in `CastRecruiter.html`, `--stat-icon-size` sets the prowess, fortitu
   folder, spawn it, and swap it for the old deck in the Cast zone.
 - **TTS models** (only if card IDs or classes changed). On the injector token, click
   *Inject IDs to Models*, then save the models bag.
+  A card rename doesn't reach the models: each keeps its own name in the bag, which only shows on hover and in health-change chat messages, since spawning matches by ID. Rename them by hand if you want them to match. The injector pairs models with cards **by name**, so rename the models before re-running it, or the renamed ones come back unmatched.
 - **TTS scripts.** Re-paste the changed `.lua` onto its object. Never paste
   `Floating_Health_Tracker.lua` on its own. `Model_ID_Injector.lua` carries a copy of it, so change
   both files identically, re-paste the injector and re-run it.
