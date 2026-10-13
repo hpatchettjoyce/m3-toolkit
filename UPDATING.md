@@ -1,7 +1,7 @@
 # Updating the Cast Recruiter
 
-Run every command from the repo root in a WSL terminal (`cd ~/projects/m3-toolkit`).
-From Windows the folder is `\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit`.
+Run every command from the repo root in a WSL terminal (`cd ~/projects/m3_toolkit`).
+From Windows the folder is `\\wsl.localhost\Ubuntu\home\harvey\projects\m3_toolkit`.
 
 ## What changed → what to do
 

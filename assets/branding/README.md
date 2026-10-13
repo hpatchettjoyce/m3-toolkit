@@ -7,11 +7,11 @@ Drop the brand assets here before starting Chunk 6 of `UPGRADE_PLAN.md`.
 Paste into the Windows Explorer address bar:
 
 ```
-\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit\assets\branding
+\\wsl.localhost\Ubuntu\home\harvey\projects\m3_toolkit\assets\branding
 ```
 
 On older Windows builds the prefix is `\\wsl$\Ubuntu\...` instead. The repo root is
-`\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit` — worth pinning to Quick Access.
+`\\wsl.localhost\Ubuntu\home\harvey\projects\m3_toolkit` — worth pinning to Quick Access.
 
 ## What to put here
 

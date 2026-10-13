@@ -54,7 +54,7 @@ tokens). `UPDATING.md` says which to run when.
 The codebase is organized into four specialized directory structures:
 
 ```text
-m3-toolkit/
+m3_toolkit/
 ├── CLAUDE.md                           # Agent-facing reference: stack, architecture, gotchas, deploy
 ├── UPDATING.md                         # Human-facing: which script to run for which kind of change
 ├── UPGRADE_PLAN.md                     # The chunked upgrade plan and its as-built record

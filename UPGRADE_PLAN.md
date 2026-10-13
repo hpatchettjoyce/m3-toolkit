@@ -415,11 +415,11 @@ mounted, no `/mnt/g`.
 Windows Explorer, paste this into the address bar:
 
 ```
-\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit\assets\branding
+\\wsl.localhost\Ubuntu\home\harvey\projects\m3_toolkit\assets\branding
 ```
 
 (On older Windows builds the prefix is `\\wsl$\Ubuntu\...` instead.) The repo itself is at
-`\\wsl.localhost\Ubuntu\home\harvey\projects\m3-toolkit`, which is worth pinning to Quick Access.
+`\\wsl.localhost\Ubuntu\home\harvey\projects\m3_toolkit`, which is worth pinning to Quick Access.
 
 If Explorer can't find the folder, just create it by hand — nothing depends on how it gets there.
 
@@ -1364,7 +1364,7 @@ they're the part that can't be re-derived cheaply.
 **Central store, outside this repo:**
 
 ```
-~/.claude/handovers/m3-toolkit/<YYYY-MM-DD>_<HHMM>__<nn>-<slug>.md
+~/.claude/handovers/m3_toolkit/<YYYY-MM-DD>_<HHMM>__<nn>-<slug>.md
 ```
 
 The date prefix sorts chronologically, so "most recent" is a plain sort. Each note carries
