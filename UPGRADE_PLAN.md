@@ -1203,7 +1203,7 @@ shows an icon was not reported; if it doesn't, the step below is next.
 on GitHub, so committing a square logomark to `assets/branding/` gives one for free:
 
 ```
-https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png
+https://raw.githubusercontent.com/hpatchettjoyce/m3_toolkit/main/assets/branding/favicon.png
 ```
 
 He appears to have the square asset already — the Drive id in `FAVICON_URL` points at something he

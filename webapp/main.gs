@@ -39,7 +39,7 @@ var DOMINIONS_SHEET_NAME = "Dominions";
 // under a name with no spaces, so the URL needs no escaping. Kept as PNG deliberately -
 // SVG tab icons are not supported everywhere (Safari).
 // Leave it empty and the app simply keeps Apps Script's default icon.
-var FAVICON_URL = "https://raw.githubusercontent.com/hpatchettjoyce/m3-toolkit/main/assets/branding/favicon.png";
+var FAVICON_URL = "https://raw.githubusercontent.com/hpatchettjoyce/m3_toolkit/main/assets/branding/favicon.png";
 
 /**
  * Serves the HTML frontend interface to clients.
